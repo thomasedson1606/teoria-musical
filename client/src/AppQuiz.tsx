@@ -44,6 +44,9 @@ export default function AppQuiz() {
   const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyLevel>(DIFFICULTY.EASY);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [feedbackText, setFeedbackText] = useState("");
+  const [feedbackClass, setFeedbackClass] = useState("");
+  const [chosenNote, setChosenNote] = useState<string | null>(null);
 
   const [state, setState] = useState({
     studentName: "",
@@ -78,6 +81,9 @@ export default function AppQuiz() {
     if (!studentName.trim()) { setNameError(true); return; }
     setNameError(false);
     setErrorMsg(null);
+    setChosenNote(null);
+    setFeedbackText("");
+    setFeedbackClass("");
     setSelectedClef(CLEFS.SOL);
     setSelectedDifficulty(DIFFICULTY.EASY);
     setScreen("config");
@@ -86,6 +92,9 @@ export default function AppQuiz() {
   const confirmExercise = () => {
     const clefConfig = CLEF_CONFIG[selectedClef];
     const questions = generateQuestions(clefConfig.notes, selectedDifficulty);
+    setChosenNote(null);
+    setFeedbackText("");
+    setFeedbackClass("");
     setState({
       studentName: studentName.trim(), clef: selectedClef, difficulty: selectedDifficulty,
       current: 0, correct: 0, wrong: 0, answered: false, questions,
@@ -94,36 +103,31 @@ export default function AppQuiz() {
     setScreen("quiz");
   };
 
-  const checkAnswer = (chosen: string, correct: string, btnElement: HTMLButtonElement) => {
+  const checkAnswer = (chosen: string, correct: string) => {
     if (state.answered) return;
-    const allBtns = document.querySelectorAll(".note-btn") as NodeListOf<HTMLButtonElement>;
-    allBtns.forEach((b) => (b.disabled = true));
+    setChosenNote(chosen);
     const isCorrect = chosen === correct;
     if (isCorrect) {
       setState((prev) => ({ ...prev, correct: prev.correct + 1 }));
-      btnElement.classList.add("correct");
-      const feedbackEl = document.getElementById("feedback");
-      if (feedbackEl) { feedbackEl.textContent = "✓ Correto!"; feedbackEl.className = "feedback-msg ok"; }
+      setFeedbackText("✓ Correto!");
+      setFeedbackClass("ok");
     } else {
       setState((prev) => ({ ...prev, wrong: prev.wrong + 1 }));
-      btnElement.classList.add("wrong");
-      allBtns.forEach((b) => { if (b.textContent === correct) b.classList.add("correct"); });
-      const feedbackEl = document.getElementById("feedback");
-      if (feedbackEl) { feedbackEl.textContent = `✗ A nota correta era ${correct}`; feedbackEl.className = "feedback-msg err"; }
+      setFeedbackText(`✗ A nota correta era ${correct}`);
+      setFeedbackClass("err");
     }
     setState((prev) => ({ ...prev, answered: true }));
-    const nextBtn = document.getElementById("next-btn") as HTMLButtonElement;
-    if (nextBtn) nextBtn.disabled = false;
   };
 
   const nextQuestion = () => {
-    setState((prev) => {
-      if (prev.current + 1 >= TOTAL_Q) {
-        finishExercise(prev);
-        return prev;
-      }
-      return { ...prev, current: prev.current + 1, answered: false };
-    });
+    if (state.current + 1 >= TOTAL_Q) {
+      finishExercise(state);
+      return;
+    }
+    setFeedbackText("");
+    setFeedbackClass("");
+    setChosenNote(null);
+    setState((prev) => ({ ...prev, current: prev.current + 1, answered: false, timerInt: null }));
   };
 
   const finishExercise = (currentState: typeof state) => {
@@ -146,6 +150,9 @@ export default function AppQuiz() {
   const retryExercise = () => {
     const clefConfig = CLEF_CONFIG[state.clef];
     const questions = generateQuestions(clefConfig.notes, state.difficulty);
+    setChosenNote(null);
+    setFeedbackText("");
+    setFeedbackClass("");
     setState({
       ...state, current: 0, correct: 0, wrong: 0, answered: false, questions,
       startTime: Date.now(), timerInt: null, elapsed: 0,
@@ -183,18 +190,23 @@ export default function AppQuiz() {
             <div style={{ fontSize: "12px", color: "#888", marginTop: "2px" }}>Aproveitamento</div>
           </div>
         </div>
-        <div style={{ background: "#fff", border: "1.5px solid #d0d0d0", borderRadius: "12px", padding: "16px 8px 12px", marginBottom: "16px", display: "flex", flexDirection: "column", alignItems: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-          <StaffSVG note={q} clef={state.clef} />
-          <div id="feedback" className="feedback-msg" style={{ textAlign: "center", fontSize: "15px", fontWeight: 600, minHeight: "22px", marginTop: "8px" }}></div>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "7px", marginBottom: "12px" }}>
-          {clefConfig.noteNames.map((name) => (
-            <button key={name} className="note-btn"
-              onClick={(e) => checkAnswer(name, q.name, e.currentTarget as HTMLButtonElement)}
-              style={{ padding: "11px 4px", fontSize: "15px", fontWeight: 600, border: "1.5px solid #ccc", borderRadius: "8px", background: "#fff", color: "#1a1a1a", cursor: "pointer", transition: "background 0.12s" }}
-            >{name}</button>
-          ))}
-        </div>
+          <div style={{ background: "#fff", border: "1.5px solid #d0d0d0", borderRadius: "12px", padding: "16px 8px 12px", marginBottom: "16px", display: "flex", flexDirection: "column", alignItems: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+            <StaffSVG note={q} clef={state.clef} />
+            <div className={`feedback-msg ${feedbackClass}`} style={{ textAlign: "center", fontSize: "15px", fontWeight: 600, minHeight: "22px", marginTop: "8px" }}>{feedbackText}</div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "7px", marginBottom: "12px" }}>
+            {clefConfig.noteNames.map((name) => {
+              let btnStyle: any = { padding: "11px 4px", fontSize: "15px", fontWeight: 600, border: "1.5px solid #ccc", borderRadius: "8px", background: "#fff", color: "#1a1a1a", cursor: "pointer", transition: "background 0.12s" };
+              if (state.answered) {
+                if (name === q.name) { btnStyle.background = "#e8f8ef"; btnStyle.borderColor = "#1D9E75"; btnStyle.color = "#0f6e56"; }
+                else if (name === chosenNote) { btnStyle.background = "#fdecea"; btnStyle.borderColor = "#c0392b"; btnStyle.color = "#c0392b"; }
+              }
+              return <button key={name} disabled={state.answered}
+                onClick={() => checkAnswer(name, q.name)}
+                style={btnStyle}
+              >{name}</button>;
+            })}
+          </div>
       </div>
     );
   };
@@ -324,8 +336,8 @@ export default function AppQuiz() {
               <span style={{ fontSize: "12px", color: "#999" }}>{CLEF_CONFIG[state.clef].label} • {DIFFICULTY_CONFIG[state.difficulty].label}</span>
             </div>
             {renderQuestion()}
-            <button id="next-btn" onClick={nextQuestion} disabled
-              style={{ width: "100%", padding: "14px", fontSize: "16px", fontWeight: 600, background: "linear-gradient(to right, #6366f1, #a855f7)", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", opacity: 0.5, marginTop: "16px" }}
+            <button id="next-btn" onClick={nextQuestion} disabled={!state.answered}
+              style={{ width: "100%", padding: "14px", fontSize: "16px", fontWeight: 600, background: "linear-gradient(to right, #6366f1, #a855f7)", color: "#fff", border: "none", borderRadius: "8px", cursor: state.answered ? "pointer" : "default", opacity: state.answered ? 1 : 0.5, marginTop: "16px" }}
             >
               {state.current === TOTAL_Q - 1 ? "Ver resultado →" : "Próxima →"}
             </button>
