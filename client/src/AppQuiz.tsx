@@ -21,9 +21,11 @@ function shuffle(arr: any[]) {
 
 function generateQuestions(notes: any[], difficulty: DifficultyLevel) {
   const filteredNotes = filterNotesByDifficulty(notes, difficulty);
-  let pool = shuffle([...filteredNotes, ...filteredNotes]);
-  let extra = shuffle([...filteredNotes]).slice(0, 6);
-  return shuffle([...pool, ...extra]).slice(0, TOTAL_Q);
+  let result: any[] = [];
+  while (result.length < TOTAL_Q) {
+    result = result.concat(shuffle([...filteredNotes]));
+  }
+  return result.slice(0, TOTAL_Q);
 }
 
 function loadLeaderboard(): any[] {
