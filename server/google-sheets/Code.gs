@@ -33,6 +33,10 @@ function doPost(e) {
     return jsonResponse({ success: true });
   }
 
+  if (data.action === 'getLeaderboard') {
+    return jsonResponse(getSheetData(ss, 'leaderboard'));
+  }
+
   if (data.action === 'verifyProfessor') {
     const rows = getSheetData(ss, 'professors');
     const found = rows.find(r => r.code === data.code);

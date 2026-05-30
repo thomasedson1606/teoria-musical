@@ -55,30 +55,33 @@ export async function saveResult(data: {
   } catch { /* offline */ }
 }
 
-/* ---- Read leaderboard (API first, fallback localStorage) ---- */
+/* ---- Read leaderboard (API first via POST, fallback localStorage) ---- */
+
+async function fetchLeaderboard(activity?: string): Promise<any[]> {
+  const url = getApiUrl();
+  if (!url) return [];
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      body: JSON.stringify({ action: "getLeaderboard" }),
+    });
+    const all: any[] = await res.json();
+    if (Array.isArray(all)) {
+      if (activity) return all.filter(r => r.activity === activity);
+      return all.filter(r => r.activity === "staff" || !r.activity);
+    }
+  } catch { /* fallback */ }
+  return [];
+}
 
 export async function getStaffLeaderboard(): Promise<any[]> {
-  const url = getApiUrl();
-  if (url) {
-    try {
-      const res = await fetch(url + "?action=getLeaderboard");
-      const all: any[] = await res.json();
-      if (Array.isArray(all)) return all.filter(r => r.activity === "staff" || !r.activity);
-    } catch { /* fallback */ }
-  }
-  return loadStaffLB();
+  const api = await fetchLeaderboard("staff");
+  return api.length ? api : loadStaffLB();
 }
 
 export async function getPianoLeaderboard(): Promise<any[]> {
-  const url = getApiUrl();
-  if (url) {
-    try {
-      const res = await fetch(url + "?action=getLeaderboard");
-      const all: any[] = await res.json();
-      if (Array.isArray(all)) return all.filter(r => r.activity === "piano");
-    } catch { /* fallback */ }
-  }
-  return loadPianoLB();
+  const api = await fetchLeaderboard("piano");
+  return api.length ? api : loadPianoLB();
 }
 
 /* ---- Teacher (API first, cache in localStorage) ---- */
