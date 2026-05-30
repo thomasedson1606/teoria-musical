@@ -8,16 +8,16 @@ const WHITE_NOTES = ["Dó", "Ré", "Mi", "Fá", "Sol", "Lá", "Si"];
 const ALL_NOTES = ["Dó", "Dó#", "Ré", "Ré#", "Mi", "Fá", "Fá#", "Sol", "Sol#", "Lá", "Lá#", "Si"];
 
 const WHITE_WIDTH = 52;
-const BLACK_WIDTH = 32;
-const WHITE_HEIGHT = 180;
-const BLACK_HEIGHT = 110;
+const BLACK_WIDTH = 30;
+const WHITE_HEIGHT = 160;
+const BLACK_HEIGHT = 95;
 
 const BLACK_POSITIONS = [
-  { note: "Dó#", offset: 1 },
-  { note: "Ré#", offset: 3 },
-  { note: "Fá#", offset: 6 },
-  { note: "Sol#", offset: 8 },
-  { note: "Lá#", offset: 10 },
+  { note: "Dó#", offset: 0 },
+  { note: "Ré#", offset: 1 },
+  { note: "Fá#", offset: 3 },
+  { note: "Sol#", offset: 4 },
+  { note: "Lá#", offset: 5 },
 ];
 
 function shuffle<T>(arr: T[]): T[] {
@@ -187,37 +187,39 @@ export default function PianoActivity({ studentName: propName, onFinish }: { stu
             </p>
 
             {/* Piano Keyboard */}
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px" }}>
-              <div style={{ position: "relative", background: "#1a1a1a", padding: "10px 10px 0", borderRadius: "8px", height: WHITE_HEIGHT + 10 }}>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px", width: "100%", overflow: "hidden" }}>
+              <div style={{ position: "relative", background: "#1a1a1a", padding: "8px 8px 0", borderRadius: "10px", boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}>
                 <div style={{ display: "flex" }}>
                   {WHITE_NOTES.map((note, i) => (
                     <div key={note}
                       style={{
                         width: WHITE_WIDTH, height: WHITE_HEIGHT,
                         background: currentNote === note && !answered ? "#93c5fd" : chosenNote === note && answered ? (chosenNote === currentNote ? "#93c5fd" : "#fca5a5") : "#fff",
-                        border: "1px solid #ccc",
-                        borderRadius: "0 0 4px 4px",
-                        cursor: "pointer",
+                        borderLeft: i === 0 ? "1px solid #ccc" : "none",
+                        borderRight: "1px solid #ccc",
+                        borderBottom: "1px solid #ccc",
+                        boxSizing: "border-box",
                         position: "relative",
                         zIndex: 1,
                         transition: "background 0.15s",
+                        flexShrink: 0,
                       }}
-                    ></div>
+                    />
                   ))}
                 </div>
-                {/* Black keys */}
                 {BLACK_POSITIONS.map(({ note, offset }) => (
                   <div key={note}
                     style={{
                       position: "absolute",
-                      top: 10,
-                      left: 10 + offset * WHITE_WIDTH + WHITE_WIDTH - BLACK_WIDTH / 2,
+                      top: 8,
+                      left: 8 + offset * WHITE_WIDTH + WHITE_WIDTH - BLACK_WIDTH / 2,
                       width: BLACK_WIDTH, height: BLACK_HEIGHT,
                       background: currentNote === note ? "#6366f1" : "#1a1a1a",
                       border: currentNote === note ? "2px solid #a855f7" : "1px solid #000",
-                      borderRadius: "0 0 4px 4px",
+                      borderRadius: "0 0 5px 5px",
                       zIndex: 2,
-                      transition: "background 0.15s",
+                      boxSizing: "border-box",
+                      transition: "background 0.15s, border 0.15s",
                     }}
                   />
                 ))}
