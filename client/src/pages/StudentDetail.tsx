@@ -1,13 +1,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
 import { ArrowLeft, TrendingUp, TrendingDown, Minus, Trophy, BookOpen } from "lucide-react";
-
-const STORAGE_KEY = "teoria_musical_leaderboard";
-
-function loadLeaderboard() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); }
-  catch { return []; }
-}
+import { getStaffLeaderboard, getPianoLeaderboard } from "@/lib/sheetsApi";
 
 function getAccuracyColor(pct: number) { if (pct >= 80) return "text-green-600"; if (pct >= 50) return "text-yellow-600"; return "text-red-600"; }
 function getAccuracyBg(pct: number) { if (pct >= 80) return "bg-green-100"; if (pct >= 50) return "bg-yellow-100"; return "bg-red-100"; }
@@ -21,18 +15,25 @@ export default function StudentDetail() {
   useEffect(() => {
     const token = localStorage.getItem("teacher_token");
     if (!token) { setLocation("/teacher-login"); return; }
-    setLeaderboard(loadLeaderboard());
+    (async () => {
+      const [staff, piano] = await Promise.all([getStaffLeaderboard(), getPianoLeaderboard()]);
+      setLeaderboard([...staff, ...piano]);
+    })();
   }, []);
 
   const sessions = useMemo(() => {
     const entries = leaderboard.filter((e: any) => e.name === studentName);
-    return entries.map((e: any, i: number) => ({
-      id: i + 1,
-      correctAnswers: e.score || 0,
-      totalQuestions: 20,
-      wrongAnswers: e.wrong || 0,
-      createdAt: e.date ? new Date(e.date.split("/").reverse().join("-")).toISOString() : new Date().toISOString(),
-    })).reverse();
+    return entries.map((e: any, i: number) => {
+      const total = (e.score || 0) + (e.wrong || 0) || 20;
+      return {
+        id: i + 1,
+        correctAnswers: e.score || 0,
+        totalQuestions: total,
+        wrongAnswers: e.wrong || 0,
+        activity: e.activity || "staff",
+        createdAt: e.date ? new Date(e.date.split("/").reverse().join("-")).toISOString() : new Date().toISOString(),
+      };
+    }).reverse();
   }, [leaderboard, studentName]);
 
   const overallAccuracy = useMemo(() => {
@@ -122,6 +123,7 @@ export default function StudentDetail() {
                   <table className="w-full text-sm">
                     <thead><tr className="border-b border-gray-200">
                       <th className="text-left py-3 px-3 font-semibold text-gray-600">#</th>
+                      <th className="text-left py-3 px-3 font-semibold text-gray-600">Atividade</th>
                       <th className="text-left py-3 px-3 font-semibold text-gray-600">Acertos</th>
                       <th className="text-left py-3 px-3 font-semibold text-gray-600">Total</th>
                       <th className="text-left py-3 px-3 font-semibold text-gray-600">Aproveitamento</th>
@@ -133,6 +135,7 @@ export default function StudentDetail() {
                         return (
                           <tr key={s.id} className="border-b border-gray-100 hover:bg-gray-50">
                             <td className="py-3 px-3 font-mono text-gray-400">{i + 1}</td>
+                            <td className="py-3 px-3 text-gray-600 text-xs">{s.activity === "piano" ? "🎹 Teclado" : "🎼 Pentagrama"}</td>
                             <td className="py-3 px-3 font-semibold text-green-600">{s.correctAnswers}</td>
                             <td className="py-3 px-3 text-gray-600">{s.totalQuestions}</td>
                             <td className="py-3 px-3"><span className={`px-2 py-0.5 rounded-full text-xs font-bold ${getAccuracyBg(pct)} ${getAccuracyColor(pct)}`}>{pct}%</span></td>

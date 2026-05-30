@@ -1,17 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { GraduationCap, ArrowLeft, AlertCircle, UserPlus } from "lucide-react";
-
-const TEACHERS_KEY = "teoria_musical_teachers";
-
-function loadTeachers() {
-  try { return JSON.parse(localStorage.getItem(TEACHERS_KEY) || "[]"); }
-  catch { return []; }
-}
-
-function saveTeachers(teachers: any[]) {
-  localStorage.setItem(TEACHERS_KEY, JSON.stringify(teachers));
-}
+import { GraduationCap, ArrowLeft, AlertCircle, UserPlus, Database } from "lucide-react";
+import { verifyTeacher, registerTeacher, getApiUrl, setApiUrl, clearApiUrl } from "@/lib/sheetsApi";
 
 export default function TeacherLogin() {
   const [, setLocation] = useLocation();
@@ -22,37 +12,45 @@ export default function TeacherLogin() {
   const [setupSchool, setSetupSchool] = useState("");
   const [setupSubject, setSetupSubject] = useState("");
   const [setupSuccess, setSetupSuccess] = useState("");
+  const [showSheetsConfig, setShowSheetsConfig] = useState(false);
+  const [sheetsUrl, setSheetsUrl] = useState(getApiUrl() || "");
 
   useEffect(() => {
     const existing = localStorage.getItem("teacher_token");
     if (existing) setLocation("/teacher");
+    setSheetsUrl(getApiUrl() || "");
   }, []);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!teacherCode.trim()) { setError("Por favor, insira seu código de professor."); return; }
     setError(null);
-    const teachers = loadTeachers();
-    const found = teachers.find((t: any) => t.code === teacherCode.trim());
+    const found = await verifyTeacher(teacherCode.trim());
     if (!found) { setError("Código inválido. Verifique ou cadastre-se primeiro."); return; }
     localStorage.setItem("teacher_token", teacherCode.trim());
     localStorage.setItem("teacher_info", JSON.stringify(found));
     setLocation("/teacher");
   };
 
-  const handleSetup = () => {
+  const handleSetup = async () => {
     if (!setupCode.trim() || setupCode.trim().length < 4) { setError("O código deve ter no mínimo 4 caracteres."); return; }
     setError(null);
     setSetupSuccess("");
-    const teachers = loadTeachers();
-    if (teachers.some((t: any) => t.code === setupCode.trim())) { setError("Este código já existe."); return; }
-    const newTeacher = { code: setupCode.trim(), schoolName: setupSchool.trim() || null, subject: setupSubject.trim() || null, createdAt: new Date().toISOString() };
-    teachers.push(newTeacher);
-    saveTeachers(teachers);
+    const ok = await registerTeacher(setupCode.trim(), setupSchool.trim(), setupSubject.trim());
+    if (!ok) { setError("Este código já existe."); return; }
     setSetupSuccess("Professor cadastrado com sucesso! Faça login.");
     setShowSetup(false);
     setSetupCode("");
     setSetupSchool("");
     setSetupSubject("");
+  };
+
+  const handleSaveSheetsUrl = () => {
+    if (sheetsUrl.trim()) {
+      setApiUrl(sheetsUrl.trim());
+    } else {
+      clearApiUrl();
+    }
+    setShowSheetsConfig(false);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => { if (e.key === "Enter") handleLogin(); };
@@ -141,10 +139,40 @@ export default function TeacherLogin() {
               <button onClick={() => { setShowSetup(true); setError(null); }}
                 className="text-gray-500 hover:text-indigo-600 text-xs flex items-center justify-center gap-1 mx-auto cursor-pointer"
               ><UserPlus className="w-3 h-3" /> Primeiro acesso? Cadastre-se</button>
+              <button onClick={() => setShowSheetsConfig(true)}
+                className="text-gray-500 hover:text-indigo-600 text-xs flex items-center justify-center gap-1 mx-auto cursor-pointer"
+              ><Database className="w-3 h-3" /> Configurar Google Sheets</button>
             </div>
           </div>
         </div>
       </div>
+
+      {showSheetsConfig && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4" onClick={() => setShowSheetsConfig(false)}>
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-gray-800">Configurar Google Sheets</h3>
+            <p className="text-sm text-gray-500">
+              Cole a URL do seu Web App do Google Apps Script para salvar os dados na nuvem.
+              Sem essa URL, os dados ficam salvos apenas no navegador (localStorage).
+            </p>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">URL do Web App</label>
+              <input type="url" placeholder="https://script.google.com/macros/s/..." value={sheetsUrl}
+                onChange={(e) => setSheetsUrl(e.target.value)}
+                className="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-lg focus:border-indigo-500 outline-none transition box-border"
+              />
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setShowSheetsConfig(false)}
+                className="flex-1 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 cursor-pointer"
+              >Cancelar</button>
+              <button onClick={handleSaveSheetsUrl}
+                className="flex-1 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg text-sm font-medium cursor-pointer"
+              >Salvar</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

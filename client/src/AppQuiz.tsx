@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Music, BookOpen } from "lucide-react";
 import PianoActivity from "@/pages/PianoActivity";
+import { saveResult } from "@/lib/sheetsApi";
 import {
   CLEFS, DIFFICULTY, CLEF_CONFIG, DIFFICULTY_CONFIG,
   filterNotesByDifficulty, type Clef, type DifficultyLevel,
@@ -33,10 +34,6 @@ function loadLeaderboard(): any[] {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
   } catch { return []; }
-}
-
-function saveLeaderboard(entries: any[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries.slice(0, 50)));
 }
 
 export default function AppQuiz() {
@@ -145,20 +142,19 @@ export default function AppQuiz() {
     setState((prev) => ({ ...prev, current: prev.current + 1, answered: false, timerInt: null }));
   };
 
-  const finishExercise = (currentState: typeof state) => {
+  const finishExercise = async (currentState: typeof state) => {
     if (state.timerInt) clearInterval(state.timerInt);
     const elapsed = Math.floor((Date.now() - currentState.startTime) / 1000);
     setState((prev) => ({ ...prev, elapsed, timerInt: null }));
     const entry = {
       name: currentState.studentName, score: currentState.correct, wrong: currentState.wrong,
       pct: Math.round(currentState.correct / TOTAL_Q * 100), time: elapsed,
-      date: new Date().toLocaleDateString("pt-BR"), timestamp: Date.now(),
+      date: new Date().toLocaleDateString("pt-BR"),
+      activity: "staff" as const,
+      clef: currentState.clef, difficulty: currentState.difficulty,
     };
-    const lb = loadLeaderboard();
-    lb.push(entry);
-    lb.sort((a: any, b: any) => b.score - a.score || a.time - b.time);
-    saveLeaderboard(lb);
-    setLeaderboard(lb);
+    await saveResult(entry);
+    setLeaderboard(loadLeaderboard());
     setScreen("result");
   };
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { saveResult } from "@/lib/sheetsApi";
 
 const TOTAL_Q = 10;
 const STORAGE_KEY = "teoria_musical_piano_leaderboard";
@@ -31,10 +32,6 @@ function shuffle<T>(arr: T[]): T[] {
 function loadLeaderboard(): any[] {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); }
   catch { return []; }
-}
-
-function saveLeaderboard(entries: any[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries.slice(0, 50)));
 }
 
 function generateQuestions(): string[] {
@@ -105,22 +102,18 @@ export default function PianoActivity({ studentName: propName, onFinish }: { stu
     setFeedbackClass("");
   };
 
-  const finishExercise = () => {
-    const elapsed = 0;
+  const finishExercise = async () => {
     const entry = {
       name: studentName.trim(),
       score: correct,
       wrong,
       pct: Math.round((correct / TOTAL_Q) * 100),
-      time: elapsed,
+      time: 0,
       date: new Date().toLocaleDateString("pt-BR"),
-      timestamp: Date.now(),
+      activity: "piano" as const,
     };
-    const lb = loadLeaderboard();
-    lb.push(entry);
-    lb.sort((a: any, b: any) => b.score - a.score || a.time - b.time);
-    saveLeaderboard(lb);
-    setLeaderboard(lb);
+    await saveResult(entry);
+    setLeaderboard(loadLeaderboard());
     setScreen("result");
   };
 
@@ -208,11 +201,8 @@ export default function PianoActivity({ studentName: propName, onFinish }: { stu
                         position: "relative",
                         zIndex: 1,
                         transition: "background 0.15s",
-                        display: "flex", alignItems: "flex-end", justifyContent: "center",
-                        paddingBottom: "8px",
-                        fontSize: "11px", fontWeight: 600, color: "#666",
                       }}
-                    >{note}</div>
+                    ></div>
                   ))}
                 </div>
                 {/* Black keys */}

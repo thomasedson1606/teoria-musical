@@ -1,13 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { GraduationCap, Users, ClipboardList, HelpCircle, ArrowLeft, LogOut, TrendingUp, TrendingDown, Minus } from "lucide-react";
-
-const STORAGE_KEY = "teoria_musical_leaderboard";
-
-function loadLeaderboard() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); }
-  catch { return []; }
-}
+import { getStaffLeaderboard, getPianoLeaderboard } from "@/lib/sheetsApi";
 
 function getAccuracyColor(pct: number) { if (pct >= 80) return "text-green-600"; if (pct >= 50) return "text-yellow-600"; return "text-red-600"; }
 function getAccuracyBg(pct: number) { if (pct >= 80) return "bg-green-100"; if (pct >= 50) return "bg-yellow-100"; return "bg-red-100"; }
@@ -22,7 +16,10 @@ export default function TeacherDashboard() {
     if (!token) { setLocation("/teacher-login"); return; }
     const info = localStorage.getItem("teacher_info");
     if (info) { try { setTeacherInfo(JSON.parse(info)); } catch {} }
-    setLeaderboard(loadLeaderboard());
+    (async () => {
+      const [staff, piano] = await Promise.all([getStaffLeaderboard(), getPianoLeaderboard()]);
+      setLeaderboard([...staff, ...piano].sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0)));
+    })();
   }, []);
 
   const stats = useMemo(() => {
@@ -33,10 +30,6 @@ export default function TeacherDashboard() {
     const totalWrong = entries.reduce((s: number, e: any) => s + (e.wrong || 0), 0);
     return { totalStudents: uniqueStudents, totalSessions, totalAnswers: totalCorrect + totalWrong, totalCorrect, totalWrong };
   }, [leaderboard]);
-
-  const noteStats = useMemo(() => {
-    return [];
-  }, []);
 
   const recentSessions = useMemo(() => {
     return [...leaderboard].sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0)).slice(0, 20);
@@ -112,12 +105,13 @@ export default function TeacherDashboard() {
               {recentSessions.length === 0 ? <p className="text-gray-400 text-center py-8">Nenhuma sessão recente.</p> : (
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {recentSessions.map((s: any, i: number) => {
-                    const pct = s.pct || Math.round((s.score / 20) * 100);
+                    const pct = s.pct || Math.round((s.score / (s.score + s.wrong || 20)) * 100);
+                    const total = (s.score || 0) + (s.wrong || 0) || 20;
                     return (
                       <div key={i} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg">
-                        <div><p className="font-medium text-gray-800 text-sm">{s.name}</p><p className="text-xs text-gray-400">{s.date || "N/A"}</p></div>
+                        <div><p className="font-medium text-gray-800 text-sm">{s.name}</p><p className="text-xs text-gray-400">{s.date || "N/A"} {s.activity && <>({s.activity === "piano" ? "Teclado" : "Pentagrama"})</>}</p></div>
                         <div className="flex items-center gap-2">
-                          <span className="text-sm text-gray-500">{s.score}/20</span>
+                          <span className="text-sm text-gray-500">{s.score}/{total}</span>
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${getAccuracyBg(pct)} ${getAccuracyColor(pct)}`}>
                             {pct >= 80 ? <TrendingUp className="w-3 h-3" /> : pct >= 50 ? <Minus className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                             {pct}%
