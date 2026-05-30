@@ -253,6 +253,11 @@ export default function AppQuiz() {
               onMouseEnter={(e) => (e.currentTarget.style.background = "#f3f0ff")}
               onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
             >Ver Painel de Ranking</button>
+            <button onClick={() => window.location.href = "/piano"}
+              style={{ width: "100%", background: "#fff", color: "#a855f7", border: "2px solid #a855f7", borderRadius: "8px", padding: "12px", fontSize: "15px", fontWeight: 600, cursor: "pointer", marginTop: "10px" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "#faf5ff")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
+            >🎹 Exercício de Teclado</button>
             <div style={{ textAlign: "center", marginTop: "12px" }}>
               <button onClick={() => window.location.href = "/teacher-login"}
                 style={{ background: "none", border: "none", color: "#888", fontSize: "13px", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: "3px" }}
@@ -265,6 +270,10 @@ export default function AppQuiz() {
             <div style={{ background: "#fff", borderRadius: "12px", padding: "20px", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
               <h3 style={{ fontSize: "16px", fontWeight: 600, color: "#1a1a1a", marginBottom: "8px" }}>Como Funciona</h3>
               <p style={{ fontSize: "14px", color: "#666", margin: 0 }}>Escolha o nível de dificuldade e a clave musical. Responda 20 questões e veja seu desempenho em tempo real.</p>
+            </div>
+            <div style={{ background: "#fff", borderRadius: "12px", padding: "20px", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
+              <h3 style={{ fontSize: "16px", fontWeight: 600, color: "#1a1a1a", marginBottom: "8px" }}>🎹 Teclado</h3>
+              <p style={{ fontSize: "14px", color: "#666", margin: 0 }}>Identifique as notas no piano. Uma atividade complementar para fixar o aprendizado.</p>
             </div>
             <div style={{ background: "#fff", borderRadius: "12px", padding: "20px", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
               <h3 style={{ fontSize: "16px", fontWeight: 600, color: "#1a1a1a", marginBottom: "8px" }}>Painel do Professor</h3>

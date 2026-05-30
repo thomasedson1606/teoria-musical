@@ -4,6 +4,7 @@ import NotFound from "@/pages/NotFound";
 import TeacherLogin from "@/pages/TeacherLogin";
 import TeacherDashboard from "@/pages/TeacherDashboard";
 import StudentDetail from "@/pages/StudentDetail";
+import PianoActivity from "@/pages/PianoActivity";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -13,6 +14,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={AppQuiz} />
+      <Route path="/piano" component={PianoActivity} />
       <Route path="/teacher-login" component={TeacherLogin} />
       <Route path="/teacher" component={TeacherDashboard} />
       <Route path="/teacher/student/:name" component={StudentDetail} />
