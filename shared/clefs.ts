@@ -17,14 +17,26 @@ export type Clef = typeof CLEFS[keyof typeof CLEFS];
 export type DifficultyLevel = typeof DIFFICULTY[keyof typeof DIFFICULTY];
 
 // ==================== CLAVE DE SOL ====================
+// Linhas suplementares abaixo e acima, abrangendo ~2 oitavas (Sol3 a Dó6)
 export const NOTES_SOL = [
-  { name: "Dó", y: 115, ledger: true },
-  { name: "Ré", y: 109, ledger: false },
-  { name: "Mi", y: 102, ledger: false },
-  { name: "Fá", y: 96, ledger: false },
-  { name: "Sol", y: 89, ledger: false },
-  { name: "Lá", y: 83, ledger: false },
-  { name: "Si", y: 76, ledger: false },
+  { name: "Sol", y: 134, ledger: false },  // espaço abaixo da 2ª linha suplementar
+  { name: "Lá", y: 128, ledger: true },    // 2ª linha suplementar inferior
+  { name: "Si", y: 121, ledger: false },   // espaço abaixo da 1ª linha suplementar
+  { name: "Dó", y: 115, ledger: true },    // 1ª linha suplementar inferior (Dó central)
+  { name: "Ré", y: 109, ledger: false },   // espaço abaixo da pauta
+  { name: "Mi", y: 102, ledger: false },   // 1ª linha da pauta
+  { name: "Fá", y: 96, ledger: false },    // 1º espaço
+  { name: "Sol", y: 89, ledger: false },   // 2ª linha
+  { name: "Lá", y: 83, ledger: false },    // 2º espaço
+  { name: "Si", y: 76, ledger: false },    // 3ª linha
+  { name: "Dó", y: 70, ledger: false },    // 3º espaço
+  { name: "Ré", y: 63, ledger: false },    // 4ª linha
+  { name: "Mi", y: 57, ledger: false },    // 4º espaço
+  { name: "Fá", y: 50, ledger: false },    // 5ª linha
+  { name: "Sol", y: 43, ledger: false },   // espaço acima da pauta
+  { name: "Lá", y: 37, ledger: true },     // 1ª linha suplementar superior
+  { name: "Si", y: 30, ledger: false },    // espaço acima da 1ª linha suplementar
+  { name: "Dó", y: 24, ledger: true },     // 2ª linha suplementar superior
 ];
 
 // ==================== CLAVE DE FÁ ====================
@@ -33,13 +45,24 @@ export const NOTES_SOL = [
 // Espaços de baixo pra cima: Si(abaixo 1ª), Ré(entre 1ª e 2ª), Fá(entre 2ª e 3ª), Lá(entre 3ª e 4ª), Dó(acima 5ª)
 
 export const NOTES_FA = [
-  { name: "Lá", y: 115, ledger: true },
-  { name: "Si", y: 109, ledger: false },
-  { name: "Dó", y: 102, ledger: false },
-  { name: "Ré", y: 96, ledger: false },
-  { name: "Mi", y: 89, ledger: false },
-  { name: "Fá", y: 83, ledger: false },
-  { name: "Sol", y: 76, ledger: false },
+  { name: "Mi", y: 134, ledger: false },   // espaço abaixo da 2ª linha suplementar
+  { name: "Fá", y: 128, ledger: true },    // 2ª linha suplementar inferior
+  { name: "Sol", y: 121, ledger: false },  // espaço abaixo da 1ª linha suplementar
+  { name: "Lá", y: 115, ledger: true },    // 1ª linha suplementar inferior
+  { name: "Si", y: 109, ledger: false },   // espaço abaixo da pauta
+  { name: "Dó", y: 102, ledger: false },   // 1ª linha
+  { name: "Ré", y: 96, ledger: false },    // 1º espaço
+  { name: "Mi", y: 89, ledger: false },    // 2ª linha
+  { name: "Fá", y: 83, ledger: false },    // 2º espaço
+  { name: "Sol", y: 76, ledger: false },   // 3ª linha
+  { name: "Lá", y: 70, ledger: false },    // 3º espaço
+  { name: "Si", y: 63, ledger: false },    // 4ª linha (clave de Fá)
+  { name: "Dó", y: 57, ledger: false },    // 4º espaço
+  { name: "Ré", y: 50, ledger: false },    // 5ª linha
+  { name: "Mi", y: 43, ledger: false },    // espaço acima da pauta
+  { name: "Fá", y: 37, ledger: true },     // 1ª linha suplementar superior
+  { name: "Sol", y: 30, ledger: false },   // espaço acima da 1ª linha suplementar
+  { name: "Lá", y: 24, ledger: true },     // 2ª linha suplementar superior
 ];
 
 export const NOTE_NAMES_SOL = ["Dó", "Ré", "Mi", "Fá", "Sol", "Lá", "Si"];
@@ -91,13 +114,13 @@ export function filterNotesByDifficulty(
   difficulty: DifficultyLevel
 ) {
   if (difficulty === DIFFICULTY.EASY) {
-    // Apenas notas nas linhas (ledger = false, y = 102, 89, 76)
-    return notes.filter((n) => !n.ledger && [102, 89, 76].includes(n.y));
+    // Apenas notas nas 5 linhas da pauta (sem linhas suplementares)
+    return notes.filter((n) => !n.ledger && [102, 89, 76, 63, 50].includes(n.y));
   } else if (difficulty === DIFFICULTY.MEDIUM) {
-    // Linhas e espaços (ledger = false)
+    // Todas as notas na pauta + espaços (sem linhas suplementares)
     return notes.filter((n) => !n.ledger);
   } else {
-    // Todas as notas (incluindo ledger)
+    // Todas as notas (incluindo linhas suplementares)
     return notes;
   }
 }

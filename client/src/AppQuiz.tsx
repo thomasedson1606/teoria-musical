@@ -399,6 +399,7 @@ export default function AppQuiz() {
 }
 
 function StaffSVG({ note, clef }: { note: any; clef: Clef }) {
+  if (!note) return null;
   const BLACK = "#1a1a1a";
   const SW = "1.8";
   const clefConfig = CLEF_CONFIG[clef];
