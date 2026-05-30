@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useLocation } from "wouter";
-import { GraduationCap, Users, ClipboardList, HelpCircle, ArrowLeft, LogOut, TrendingUp, TrendingDown, Minus } from "lucide-react";
-import { getStaffLeaderboard, getPianoLeaderboard } from "@/lib/sheetsApi";
+import { GraduationCap, Users, ClipboardList, HelpCircle, ArrowLeft, LogOut, TrendingUp, TrendingDown, Minus, Trash2 } from "lucide-react";
+import { getStaffLeaderboard, getPianoLeaderboard, getTeachers, deleteStudent, deleteTeacher } from "@/lib/sheetsApi";
 
 function getAccuracyColor(pct: number) { if (pct >= 80) return "text-green-600"; if (pct >= 50) return "text-yellow-600"; return "text-red-600"; }
 function getAccuracyBg(pct: number) { if (pct >= 80) return "bg-green-100"; if (pct >= 50) return "bg-yellow-100"; return "bg-red-100"; }
@@ -10,16 +10,22 @@ export default function TeacherDashboard() {
   const [, setLocation] = useLocation();
   const [teacherInfo, setTeacherInfo] = useState<any>(null);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [teachers, setTeachers] = useState<any[]>([]);
+  const [confirmDeleteTeacher, setConfirmDeleteTeacher] = useState<string | null>(null);
+
+  const loadData = useCallback(async () => {
+    const [staff, piano] = await Promise.all([getStaffLeaderboard(), getPianoLeaderboard()]);
+    setLeaderboard([...staff, ...piano].sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0)));
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem("teacher_token");
     if (!token) { setLocation("/teacher-login"); return; }
     const info = localStorage.getItem("teacher_info");
     if (info) { try { setTeacherInfo(JSON.parse(info)); } catch {} }
-    (async () => {
-      const [staff, piano] = await Promise.all([getStaffLeaderboard(), getPianoLeaderboard()]);
-      setLeaderboard([...staff, ...piano].sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0)));
-    })();
+    loadData();
+    getTeachers().then(setTeachers).catch(() => {});
   }, []);
 
   const stats = useMemo(() => {
@@ -43,6 +49,18 @@ export default function TeacherDashboard() {
     localStorage.removeItem("teacher_token");
     localStorage.removeItem("teacher_info");
     setLocation("/teacher-login");
+  };
+
+  const handleDeleteStudent = async (name: string) => {
+    await deleteStudent(name);
+    setConfirmDelete(null);
+    loadData();
+  };
+
+  const handleDeleteTeacher = async (code: string) => {
+    await deleteTeacher(code);
+    setConfirmDeleteTeacher(null);
+    getTeachers().then(setTeachers).catch(() => {});
   };
 
   return (
@@ -74,6 +92,23 @@ export default function TeacherDashboard() {
           ))}
         </div>
 
+        {teachers.length > 0 && (
+          <div className="bg-white rounded-xl shadow-lg border-0 overflow-hidden">
+            <div className="bg-gradient-to-r from-amber-600 to-orange-600 text-white p-4"><h2 className="flex items-center gap-2 text-lg font-bold"><Users className="w-5 h-5" />Gerenciar Professores</h2></div>
+            <div className="p-4 flex flex-wrap gap-2">
+              {teachers.map((t: any, i: number) => (
+                <div key={i} className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  <span className="text-sm font-medium text-amber-800">{t.schoolName || "Sem escola"} — {t.subject || "Sem disciplina"} <span className="text-amber-500">({t.code})</span></span>
+                  <button onClick={() => setConfirmDeleteTeacher(t.code)}
+                    className="p-1 text-amber-400 hover:text-red-600 hover:bg-amber-100 rounded transition-colors cursor-pointer"
+                    title="Excluir professor"
+                  ><Trash2 className="w-3.5 h-3.5" /></button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white rounded-xl shadow-lg border-0 overflow-hidden">
             <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-4"><h2 className="flex items-center gap-2 text-lg font-bold"><Users className="w-5 h-5" />Alunos</h2></div>
@@ -84,14 +119,20 @@ export default function TeacherDashboard() {
                     const entries = leaderboard.filter((e: any) => e.name === name);
                     const best = Math.max(...entries.map((e: any) => e.pct || 0));
                     return (
-                      <button key={name} onClick={() => setLocation(`/teacher/student/${encodeURIComponent(name)}`)}
-                        className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-indigo-50 transition-colors text-left border border-gray-100 cursor-pointer"
-                      >
-                        <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-semibold text-sm">
-                          {name.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="flex-1"><p className="font-medium text-gray-800">{name}</p><p className="text-xs text-gray-400">{entries.length} sessões · Melhor: {best}%</p></div>
-                      </button>
+                      <div key={name} className="flex items-center gap-2">
+                        <button onClick={() => setLocation(`/teacher/student/${encodeURIComponent(name)}`)}
+                          className="flex-1 flex items-center gap-3 p-3 rounded-lg hover:bg-indigo-50 transition-colors text-left border border-gray-100 cursor-pointer"
+                        >
+                          <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-semibold text-sm">
+                            {name.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="flex-1"><p className="font-medium text-gray-800">{name}</p><p className="text-xs text-gray-400">{entries.length} sessões · Melhor: {best}%</p></div>
+                        </button>
+                        <button onClick={() => setConfirmDelete(name)}
+                          className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                          title="Excluir aluno"
+                        ><Trash2 className="w-4 h-4" /></button>
+                      </div>
                     );
                   })}
                 </div>
@@ -126,6 +167,40 @@ export default function TeacherDashboard() {
           </div>
         </div>
       </div>
+
+      {confirmDeleteTeacher && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4" onClick={() => setConfirmDeleteTeacher(null)}>
+          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-gray-800">Excluir professor</h3>
+            <p className="text-sm text-gray-500">Tem certeza que deseja excluir o professor com código <strong>{confirmDeleteTeacher}</strong>?</p>
+            <div className="flex gap-3">
+              <button onClick={() => setConfirmDeleteTeacher(null)}
+                className="flex-1 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 cursor-pointer"
+              >Cancelar</button>
+              <button onClick={() => handleDeleteTeacher(confirmDeleteTeacher)}
+                className="flex-1 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 cursor-pointer"
+              >Excluir</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmDelete && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4" onClick={() => setConfirmDelete(null)}>
+          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-gray-800">Excluir aluno</h3>
+            <p className="text-sm text-gray-500">Tem certeza que deseja excluir <strong>{confirmDelete}</strong>? Todas as sessões dele serão removidas.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setConfirmDelete(null)}
+                className="flex-1 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 cursor-pointer"
+              >Cancelar</button>
+              <button onClick={() => handleDeleteStudent(confirmDelete)}
+                className="flex-1 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 cursor-pointer"
+              >Excluir</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
