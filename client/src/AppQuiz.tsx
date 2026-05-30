@@ -40,8 +40,11 @@ export default function AppQuiz() {
   const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyLevel>(DIFFICULTY.EASY);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
 
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
   const [state, setState] = useState({
     studentName: "",
+    sessionId: 0,
     clef: CLEFS.SOL as Clef,
     difficulty: DIFFICULTY.EASY as DifficultyLevel,
     current: 0,
@@ -102,6 +105,7 @@ export default function AppQuiz() {
       return;
     }
     setNameError(false);
+    setErrorMsg(null);
     setSelectedClef(CLEFS.SOL);
     setSelectedDifficulty(DIFFICULTY.EASY);
     setScreen("config");
@@ -119,6 +123,7 @@ export default function AppQuiz() {
 
       setState({
         studentName: studentName.trim(),
+        sessionId: result.sessionId,
         clef: selectedClef,
         difficulty: selectedDifficulty,
         current: 0,
@@ -131,8 +136,9 @@ export default function AppQuiz() {
         elapsed: 0,
       });
       setScreen("quiz");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error starting exercise:", err);
+      setErrorMsg(err?.message || "Erro ao iniciar exercício. Verifique se o banco de dados está configurado.");
     }
   };
 
@@ -170,7 +176,7 @@ export default function AppQuiz() {
 
     try {
       await submitAnswerMutation.mutateAsync({
-        sessionId: 1,
+        sessionId: state.sessionId,
         questionNumber: state.current + 1,
         correctNote: correct,
         studentAnswer: chosen,
@@ -478,9 +484,19 @@ export default function AppQuiz() {
               </div>
             </div>
 
+            {errorMsg && (
+              <div style={{
+                background: "#fdecea", color: "#c0392b", padding: "12px 16px",
+                borderRadius: "8px", fontSize: "14px", marginBottom: "16px",
+                border: "1px solid #f5c6cb",
+              }}>
+                {errorMsg}
+              </div>
+            )}
+
             <div style={{ display: "flex", gap: "12px" }}>
               <button
-                onClick={() => setScreen("home")}
+                onClick={() => { setScreen("home"); setErrorMsg(null); }}
                 style={{
                   flex: 1,
                   background: "#fff",
