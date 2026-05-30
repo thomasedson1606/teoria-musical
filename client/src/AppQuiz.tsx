@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Music, BookOpen } from "lucide-react";
+import PianoActivity from "@/pages/PianoActivity";
 import {
   CLEFS, DIFFICULTY, CLEF_CONFIG, DIFFICULTY_CONFIG,
   filterNotesByDifficulty, type Clef, type DifficultyLevel,
@@ -39,7 +40,8 @@ function saveLeaderboard(entries: any[]) {
 }
 
 export default function AppQuiz() {
-  const [screen, setScreen] = useState<"home" | "config" | "quiz" | "result">("home");
+  const [screen, setScreen] = useState<"home" | "choose" | "config" | "quiz" | "result" | "piano">("home");
+  const [activity, setActivity] = useState<"staff" | "piano" | null>(null);
   const [studentName, setStudentName] = useState("");
   const [nameError, setNameError] = useState(false);
   const [selectedClef, setSelectedClef] = useState<Clef>(CLEFS.SOL);
@@ -86,9 +88,20 @@ export default function AppQuiz() {
     setChosenNote(null);
     setFeedbackText("");
     setFeedbackClass("");
+    setActivity(null);
+    setScreen("choose");
+  };
+
+  const selectStaff = () => {
+    setActivity("staff");
     setSelectedClef(CLEFS.SOL);
     setSelectedDifficulty(DIFFICULTY.EASY);
     setScreen("config");
+  };
+
+  const selectPiano = () => {
+    setActivity("piano");
+    setScreen("piano");
   };
 
   const confirmExercise = () => {
@@ -253,11 +266,6 @@ export default function AppQuiz() {
               onMouseEnter={(e) => (e.currentTarget.style.background = "#f3f0ff")}
               onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
             >Ver Painel de Ranking</button>
-            <button onClick={() => window.location.href = "/piano"}
-              style={{ width: "100%", background: "#fff", color: "#a855f7", border: "2px solid #a855f7", borderRadius: "8px", padding: "12px", fontSize: "15px", fontWeight: 600, cursor: "pointer", marginTop: "10px" }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "#faf5ff")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
-            >🎹 Exercício de Teclado</button>
             <div style={{ textAlign: "center", marginTop: "12px" }}>
               <button onClick={() => window.location.href = "/teacher-login"}
                 style={{ background: "none", border: "none", color: "#888", fontSize: "13px", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: "3px" }}
@@ -272,15 +280,51 @@ export default function AppQuiz() {
               <p style={{ fontSize: "14px", color: "#666", margin: 0 }}>Escolha o nível de dificuldade e a clave musical. Responda 20 questões e veja seu desempenho em tempo real.</p>
             </div>
             <div style={{ background: "#fff", borderRadius: "12px", padding: "20px", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
-              <h3 style={{ fontSize: "16px", fontWeight: 600, color: "#1a1a1a", marginBottom: "8px" }}>🎹 Teclado</h3>
-              <p style={{ fontSize: "14px", color: "#666", margin: 0 }}>Identifique as notas no piano. Uma atividade complementar para fixar o aprendizado.</p>
-            </div>
-            <div style={{ background: "#fff", borderRadius: "12px", padding: "20px", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
               <h3 style={{ fontSize: "16px", fontWeight: 600, color: "#1a1a1a", marginBottom: "8px" }}>Painel do Professor</h3>
               <p style={{ fontSize: "14px", color: "#666", margin: 0 }}>Acesse o ranking para visualizar o desempenho de todos os alunos e acompanhar o progresso.</p>
             </div>
           </div>
         </div>
+      )}
+
+      {screen === "choose" && (
+        <div style={{ maxWidth: "700px", margin: "0 auto", paddingTop: "60px" }}>
+          <div style={{ background: "#fff", borderRadius: "16px", padding: "32px", boxShadow: "0 10px 40px rgba(0,0,0,0.08)" }}>
+            <div style={{ background: "linear-gradient(to right, #6366f1, #a855f7)", color: "#fff", borderRadius: "12px 12px 0 0", padding: "20px", marginBottom: "24px", marginLeft: "-32px", marginRight: "-32px", marginTop: "-32px" }}>
+              <h2 style={{ fontSize: "24px", fontWeight: 700, margin: 0 }}>Olá, {studentName.trim()}!</h2>
+            </div>
+            <p style={{ textAlign: "center", fontSize: "16px", color: "#555", marginBottom: "28px" }}>Escolha uma atividade:</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginBottom: "20px" }}>
+              <button onClick={selectStaff}
+                style={{ padding: "28px", border: "2px solid #e0e0e0", borderRadius: "16px", background: "#fff", cursor: "pointer", textAlign: "center", transition: "border-color 0.2s, background 0.2s" }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#6366f1"; e.currentTarget.style.background = "#f3f0ff"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e0e0e0"; e.currentTarget.style.background = "#fff"; }}
+              >
+                <div style={{ fontSize: "40px", marginBottom: "12px" }}>🎼</div>
+                <div style={{ fontSize: "20px", fontWeight: 700, color: "#1a1a1a", marginBottom: "6px" }}>NOTAS MUSICAIS</div>
+                <div style={{ fontSize: "14px", color: "#666" }}>Identifique as notas no pentagrama musical • 20 questões • 3 níveis</div>
+              </button>
+              <button onClick={selectPiano}
+                style={{ padding: "28px", border: "2px solid #e0e0e0", borderRadius: "16px", background: "#fff", cursor: "pointer", textAlign: "center", transition: "border-color 0.2s, background 0.2s" }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#a855f7"; e.currentTarget.style.background = "#faf5ff"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e0e0e0"; e.currentTarget.style.background = "#fff"; }}
+              >
+                <div style={{ fontSize: "40px", marginBottom: "12px" }}>🎹</div>
+                <div style={{ fontSize: "20px", fontWeight: 700, color: "#1a1a1a", marginBottom: "6px" }}>TECLADO</div>
+                <div style={{ fontSize: "14px", color: "#666" }}>Identifique as notas no teclado do piano • 10 questões</div>
+              </button>
+            </div>
+            <button onClick={() => setScreen("home")}
+              style={{ width: "100%", background: "#fff", color: "#1a1a1a", border: "1.5px solid #ccc", borderRadius: "8px", padding: "12px", fontSize: "15px", fontWeight: 600, cursor: "pointer" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "#f5f5f5")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
+            >← Voltar</button>
+          </div>
+        </div>
+      )}
+
+      {screen === "piano" && (
+        <PianoActivity studentName={studentName} onFinish={() => setScreen("home")} />
       )}
 
       {screen === "config" && (
@@ -415,6 +459,15 @@ function StaffSVG({ note, clef }: { note: any; clef: Clef }) {
   const SW = "1.8";
   const clefConfig = CLEF_CONFIG[clef];
 
+  const ledgerLines: number[] = [];
+  if (note.y > 102) {
+    for (let ly = 115; ly <= note.y; ly += 13)
+      ledgerLines.push(ly);
+  } else if (note.y < 50) {
+    for (let ly = 37; ly >= note.y; ly -= 13)
+      ledgerLines.push(ly);
+  }
+
   return (
     <svg viewBox="0 0 420 160" xmlns="http://www.w3.org/2000/svg" style={{ display: "block", width: "100%", maxWidth: "420px" }}>
       {LY.map((y, i) => (
@@ -423,7 +476,9 @@ function StaffSVG({ note, clef }: { note: any; clef: Clef }) {
       <line x1="40" y1={LY[4]} x2="40" y2={LY[0]} stroke={BLACK} strokeWidth="2.5" />
       <line x1="390" y1={LY[4]} x2="390" y2={LY[0]} stroke={BLACK} strokeWidth="2.5" />
       <text x="46" y="113" fontSize="72" fill={BLACK} fontFamily='Georgia, "Times New Roman", serif'>{clefConfig.unicode}</text>
-      {note.ledger && <line x1={NOTE_X - 16} y1={note.y} x2={NOTE_X + 16} y2={note.y} stroke={BLACK} strokeWidth={SW} strokeLinecap="round" />}
+      {ledgerLines.map((ly) => (
+        <line key={ly} x1={NOTE_X - 16} y1={ly} x2={NOTE_X + 16} y2={ly} stroke={BLACK} strokeWidth={SW} strokeLinecap="round" />
+      ))}
       <ellipse cx={NOTE_X} cy={note.y} rx="12" ry="8" fill={BLACK} transform={`rotate(-20 ${NOTE_X} ${note.y})`} />
       {note.y >= 76 ? (
         <line x1={NOTE_X + 11} y1={note.y - 5} x2={NOTE_X + 11} y2={note.y - 42} stroke={BLACK} strokeWidth="2" />

@@ -45,12 +45,12 @@ function generateQuestions(): string[] {
   return result.slice(0, TOTAL_Q);
 }
 
-export default function PianoActivity() {
-  const [screen, setScreen] = useState<"home" | "quiz" | "result">("home");
-  const [studentName, setStudentName] = useState("");
+export default function PianoActivity({ studentName: propName, onFinish }: { studentName?: string; onFinish?: () => void }) {
+  const [screen, setScreen] = useState<"home" | "quiz" | "result">(propName ? "quiz" : "home");
+  const [studentName, setStudentName] = useState(propName || "");
   const [nameError, setNameError] = useState(false);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
-  const [questions, setQuestions] = useState<string[]>([]);
+  const [questions, setQuestions] = useState<string[]>(() => propName ? generateQuestions() : []);
   const [current, setCurrent] = useState(0);
   const [correct, setCorrect] = useState(0);
   const [wrong, setWrong] = useState(0);
@@ -167,7 +167,7 @@ export default function PianoActivity() {
             <button onClick={startQuiz} disabled={!studentName.trim()}
               style={{ width: "100%", background: "linear-gradient(to right, #6366f1, #a855f7)", color: "#fff", border: "none", borderRadius: "8px", padding: "14px", fontSize: "16px", fontWeight: 600, cursor: studentName.trim() ? "pointer" : "default", opacity: studentName.trim() ? 1 : 0.5, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", marginBottom: "12px" }}
             >🎹 Iniciar Exercício</button>
-            <button onClick={() => window.location.href = "/"}
+            <button onClick={() => onFinish?.()}
               style={{ width: "100%", background: "#fff", color: "#6366f1", border: "2px solid #6366f1", borderRadius: "8px", padding: "12px", fontSize: "15px", fontWeight: 600, cursor: "pointer" }}
               onMouseEnter={(e) => (e.currentTarget.style.background = "#f3f0ff")}
               onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
@@ -286,7 +286,7 @@ export default function PianoActivity() {
             <button onClick={retry}
               style={{ background: "linear-gradient(to right, #6366f1, #a855f7)", color: "#fff", border: "none", borderRadius: "8px", padding: "12px 28px", fontSize: "15px", fontWeight: 600, cursor: "pointer" }}
             >Tentar novamente</button>
-            <button onClick={() => window.location.href = "/"}
+            <button onClick={() => onFinish?.()}
               style={{ background: "#fff", color: "#6366f1", border: "2px solid #6366f1", borderRadius: "8px", padding: "12px 28px", fontSize: "15px", fontWeight: 600, cursor: "pointer" }}
             >Home</button>
           </div>
