@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { GraduationCap, ArrowLeft, AlertCircle, UserPlus, Database } from "lucide-react";
-import { verifyTeacher, registerTeacher, getApiUrl, setApiUrl, clearApiUrl } from "@/lib/sheetsApi";
+import { GraduationCap, ArrowLeft, AlertCircle, UserPlus, Database, CheckCircle, XCircle } from "lucide-react";
+import { verifyTeacher, registerTeacher, getApiUrl, setApiUrl, clearApiUrl, isApiEnvConfigured } from "@/lib/sheetsApi";
 
 export default function TeacherLogin() {
   const [, setLocation] = useLocation();
@@ -14,6 +14,7 @@ export default function TeacherLogin() {
   const [setupSuccess, setSetupSuccess] = useState("");
   const [showSheetsConfig, setShowSheetsConfig] = useState(false);
   const [sheetsUrl, setSheetsUrl] = useState(getApiUrl() || "");
+  const envConfigured = isApiEnvConfigured();
 
   useEffect(() => {
     const existing = localStorage.getItem("teacher_token");
@@ -92,6 +93,12 @@ export default function TeacherLogin() {
               </div>
               {error && <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded-lg text-sm"><AlertCircle className="w-4 h-4 flex-shrink-0" /><span>{error}</span></div>}
               {setupSuccess && <div className="text-green-700 bg-green-50 p-3 rounded-lg text-sm font-medium">{setupSuccess}</div>}
+              {!envConfigured && !getApiUrl() && (
+                <div className="text-xs text-amber-600 bg-amber-50 p-3 rounded-lg">
+                  Sem conexão com Google Sheets. Os dados ficarão salvos apenas neste dispositivo.
+                  Configure na tela de login.
+                </div>
+              )}
               <button onClick={handleSetup}
                 className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold py-3 rounded-lg transition cursor-pointer"
               >Cadastrar</button>
@@ -120,6 +127,13 @@ export default function TeacherLogin() {
             <h2 className="text-xl font-bold">Login do Professor</h2>
           </div>
           <div className="p-6 space-y-5">
+            <div className="flex items-center gap-2 text-xs">
+              {envConfigured || getApiUrl() ? (
+                <span className="flex items-center gap-1 text-green-600"><CheckCircle className="w-3 h-3" /> Google Sheets conectado</span>
+              ) : (
+                <span className="flex items-center gap-1 text-amber-600"><XCircle className="w-3 h-3" /> Apenas local (navegador)</span>
+              )}
+            </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Código do Professor</label>
               <input type="password" placeholder="Digite seu código secreto" value={teacherCode}
@@ -139,9 +153,11 @@ export default function TeacherLogin() {
               <button onClick={() => { setShowSetup(true); setError(null); }}
                 className="text-gray-500 hover:text-indigo-600 text-xs flex items-center justify-center gap-1 mx-auto cursor-pointer"
               ><UserPlus className="w-3 h-3" /> Primeiro acesso? Cadastre-se</button>
-              <button onClick={() => setShowSheetsConfig(true)}
-                className="text-gray-500 hover:text-indigo-600 text-xs flex items-center justify-center gap-1 mx-auto cursor-pointer"
-              ><Database className="w-3 h-3" /> Configurar Google Sheets</button>
+              {!envConfigured && (
+                <button onClick={() => setShowSheetsConfig(true)}
+                  className="text-gray-500 hover:text-indigo-600 text-xs flex items-center justify-center gap-1 mx-auto cursor-pointer"
+                ><Database className="w-3 h-3" /> Configurar Google Sheets</button>
+              )}
             </div>
           </div>
         </div>

@@ -1,6 +1,9 @@
 const API_URL_KEY = "sheets_api_url";
 
 export function getApiUrl(): string | null {
+  if (typeof import.meta !== "undefined" && import.meta.env?.VITE_SHEETS_API_URL) {
+    return import.meta.env.VITE_SHEETS_API_URL as string;
+  }
   try { return localStorage.getItem(API_URL_KEY); }
   catch { return null; }
 }
@@ -31,7 +34,7 @@ function loadTeachersLocal(): any[] {
   try { return JSON.parse(localStorage.getItem(TEACHERS_KEY) || "[]"); } catch { return []; }
 }
 
-/* ---- Public API ---- */
+/* ---- Save results (localStorage first + API async) ---- */
 
 export async function saveResult(data: {
   name: string; score: number; wrong: number; pct: number;
@@ -49,8 +52,10 @@ export async function saveResult(data: {
   if (!url) return;
   try {
     await fetch(url, { method: "POST", body: JSON.stringify({ action: "saveResult", ...entry }) });
-  } catch { /* offline – data is safe in localStorage */ }
+  } catch { /* offline */ }
 }
+
+/* ---- Read leaderboard (API first, fallback localStorage) ---- */
 
 export async function getStaffLeaderboard(): Promise<any[]> {
   const url = getApiUrl();
@@ -76,36 +81,52 @@ export async function getPianoLeaderboard(): Promise<any[]> {
   return loadPianoLB();
 }
 
+/* ---- Teacher (API first, cache in localStorage) ---- */
+
 export async function registerTeacher(code: string, schoolName = "", subject = ""): Promise<boolean> {
   const local = loadTeachersLocal();
   if (local.some((t: any) => t.code === code)) return false;
-  local.push({ code, schoolName, subject, createdAt: new Date().toISOString() });
+  const teacher = { code, schoolName, subject, createdAt: new Date().toISOString() };
+  local.push(teacher);
   localStorage.setItem(TEACHERS_KEY, JSON.stringify(local));
 
   const url = getApiUrl();
-  if (!url) return true;
-  try {
-    await fetch(url, {
-      method: "POST",
-      body: JSON.stringify({ action: "registerProfessor", code, schoolName, subject }),
-    });
-  } catch { /* ok */ }
+  if (url) {
+    try {
+      await fetch(url, {
+        method: "POST",
+        body: JSON.stringify({ action: "registerProfessor", code, schoolName, subject }),
+      });
+    } catch { /* ok */ }
+  }
   return true;
 }
 
 export async function verifyTeacher(code: string): Promise<any | null> {
-  const local = loadTeachersLocal();
-  const found = local.find((t: any) => t.code === code);
-  if (found) return found;
-
+  // Try API first (cross-device)
   const url = getApiUrl();
-  if (!url) return null;
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      body: JSON.stringify({ action: "verifyProfessor", code }),
-    });
-    const data = await res.json();
-    return data.professor || null;
-  } catch { return null; }
+  if (url) {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        body: JSON.stringify({ action: "verifyProfessor", code }),
+      });
+      const data = await res.json();
+      if (data.professor) {
+        const local = loadTeachersLocal();
+        if (!local.some((t: any) => t.code === code)) {
+          local.push(data.professor);
+          localStorage.setItem(TEACHERS_KEY, JSON.stringify(local));
+        }
+        return data.professor;
+      }
+    } catch { /* fallback */ }
+  }
+  // Fallback to localStorage
+  const local = loadTeachersLocal();
+  return local.find((t: any) => t.code === code) || null;
+}
+
+export function isApiEnvConfigured(): boolean {
+  return typeof import.meta !== "undefined" && !!import.meta.env?.VITE_SHEETS_API_URL;
 }
