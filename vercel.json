@@ -1,10 +1,8 @@
 {
   "buildCommand": "vite build",
   "outputDirectory": "dist/public",
-  "devCommand": "NODE_ENV=development tsx watch server/_core/index.ts",
   "framework": "vite",
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index.ts" },
-    { "source": "/(.*)", "destination": "/api/index.ts" }
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
