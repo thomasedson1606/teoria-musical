@@ -1,22 +1,8 @@
-const API_URL_KEY = "sheets_api_url";
-
-export function getApiUrl(): string | null {
-  if (typeof import.meta !== "undefined" && import.meta.env?.VITE_SHEETS_API_URL) {
-    return import.meta.env.VITE_SHEETS_API_URL as string;
-  }
-  try { return localStorage.getItem(API_URL_KEY); }
-  catch { return null; }
-}
-
-export function setApiUrl(url: string) {
-  localStorage.setItem(API_URL_KEY, url);
-}
-
-export function clearApiUrl() {
-  localStorage.removeItem(API_URL_KEY);
-}
-
-/* ---- localStorage keys ---- */
+import { db, hasConfig } from "./firebase";
+import {
+  collection, addDoc, getDocs, query,
+  deleteDoc, doc, writeBatch,
+} from "firebase/firestore";
 
 const STAFF_KEY = "teoria_musical_leaderboard";
 const PIANO_KEY = "teoria_musical_piano_leaderboard";
@@ -41,85 +27,69 @@ function saveTeachersLocal(data: any[]) {
   localStorage.setItem(TEACHERS_KEY, JSON.stringify(data));
 }
 
-/* ---- JSONP helper (bypasses CORS for reads) ---- */
+/* ---- Export helpers (kept for compatibility) ---- */
 
-function jsonp(url: string): Promise<any> {
-  return new Promise((resolve, reject) => {
-    const cb = "j" + Date.now() + "_" + Math.random().toString(36).slice(2, 6);
-    (window as any)[cb] = (data: any) => {
-      delete (window as any)[cb];
-      const s = document.getElementById("j_" + cb);
-      if (s) s.remove();
-      resolve(data);
-    };
-    const sep = url.includes("?") ? "&" : "?";
-    const script = document.createElement("script");
-    script.id = "j_" + cb;
-    script.src = url + sep + "callback=" + cb;
-    script.onerror = () => {
-      delete (window as any)[cb];
-      script.remove();
-      reject(new Error("JSONP failed"));
-    };
-    document.head.appendChild(script);
-  });
+export function getApiUrl(): string | null {
+  return hasConfig ? "firebase" : null;
 }
 
-/* ---- Save (localStorage + no-cors POST) ---- */
+export function setApiUrl(_url: string) {}
 
-function postNoCors(url: string, data: any) {
-  try {
-    fetch(url, { method: "POST", mode: "no-cors", body: JSON.stringify(data) });
-  } catch { /* silent */ }
+export function clearApiUrl() {}
+
+export function isApiEnvConfigured(): boolean {
+  return hasConfig;
 }
+
+/* ---- Save result (Firestore + localStorage) ---- */
 
 export async function saveResult(data: {
   name: string; score: number; wrong: number; pct: number;
   time: number; date: string; activity: "staff" | "piano";
   clef?: string; difficulty?: string;
 }) {
-  const entry = { ...data, timestamp: Date.now() };
+  const entry: any = { ...data, timestamp: Date.now() };
   const key = data.activity === "piano" ? PIANO_KEY : STAFF_KEY;
   const lb = data.activity === "piano" ? loadPianoLB() : loadStaffLB();
   lb.push(entry);
   lb.sort((a: any, b: any) => b.score - a.score || a.time - b.time);
   localStorage.setItem(key, JSON.stringify(lb.slice(0, 50)));
-
-  const url = getApiUrl();
-  if (url) postNoCors(url, { action: "saveResult", ...entry });
+  if (db) {
+    try {
+      await addDoc(collection(db, "results"), entry);
+    } catch { /* silent */ }
+  }
 }
 
-/* ---- Read leaderboard (JSONP first, fallback localStorage) ---- */
+/* ---- Read leaderboard (Firestore first, fallback localStorage) ---- */
+
+async function getAllResults(): Promise<any[]> {
+  if (!db) return [];
+  try {
+    const snap = await getDocs(query(collection(db, "results")));
+    return snap.docs.map(d => ({ ...d.data(), _id: d.id }));
+  } catch { return []; }
+}
 
 export async function getStaffLeaderboard(): Promise<any[]> {
-  const url = getApiUrl();
-  if (url) {
-    try {
-      const all: any[] = await jsonp(url + "?action=getLeaderboard");
-      if (Array.isArray(all)) {
-        const filtered = all.filter(r => r.activity === "staff" || !r.activity);
-        if (filtered.length) return filtered;
-      }
-    } catch { /* fallback */ }
+  if (db) {
+    const all = await getAllResults();
+    const filtered = all.filter(r => r.activity === "staff" || !r.activity);
+    if (filtered.length) return filtered;
   }
   return loadStaffLB();
 }
 
 export async function getPianoLeaderboard(): Promise<any[]> {
-  const url = getApiUrl();
-  if (url) {
-    try {
-      const all: any[] = await jsonp(url + "?action=getLeaderboard");
-      if (Array.isArray(all)) {
-        const filtered = all.filter(r => r.activity === "piano");
-        if (filtered.length) return filtered;
-      }
-    } catch { /* fallback */ }
+  if (db) {
+    const all = await getAllResults();
+    const filtered = all.filter(r => r.activity === "piano");
+    if (filtered.length) return filtered;
   }
   return loadPianoLB();
 }
 
-/* ---- Teacher (JSONP verify + no-cors register) ---- */
+/* ---- Teacher (Firestore + localStorage) ---- */
 
 export async function registerTeacher(code: string, schoolName = "", subject = ""): Promise<boolean> {
   const local = loadTeachersLocal();
@@ -127,61 +97,70 @@ export async function registerTeacher(code: string, schoolName = "", subject = "
   const teacher = { code, schoolName, subject, createdAt: new Date().toISOString() };
   local.push(teacher);
   saveTeachersLocal(local);
-  const url = getApiUrl();
-  if (url) postNoCors(url, { action: "registerProfessor", code, schoolName, subject });
+  if (db) {
+    try {
+      await addDoc(collection(db, "teachers"), teacher);
+    } catch { /* silent */ }
+  }
   return true;
 }
 
 export async function verifyTeacher(code: string): Promise<any | null> {
-  const url = getApiUrl();
-  if (url) {
+  if (db) {
     try {
-      const data: any = await jsonp(url + "?action=verifyProfessor&code=" + encodeURIComponent(code));
-      if (data && data.professor) {
+      const snap = await getDocs(query(collection(db, "teachers")));
+      const found = snap.docs.map(d => d.data()).find((t: any) => t.code === code);
+      if (found) {
         const local = loadTeachersLocal();
         if (!local.some((t: any) => t.code === code)) {
-          local.push(data.professor);
+          local.push(found);
           saveTeachersLocal(local);
         }
-        return data.professor;
+        return found;
       }
     } catch { /* fallback */ }
   }
-  const local = loadTeachersLocal();
-  return local.find((t: any) => t.code === code) || null;
+  return loadTeachersLocal().find((t: any) => t.code === code) || null;
 }
 
-/* ---- Delete (no-cors POST + localStorage) ---- */
-
 export async function getTeachers(): Promise<any[]> {
-  const url = getApiUrl();
-  if (url) {
+  if (db) {
     try {
-      const data: any[] = await jsonp(url + "?action=getProfessors");
-      if (Array.isArray(data) && data.length) return data;
+      const snap = await getDocs(query(collection(db, "teachers")));
+      const data = snap.docs.map(d => d.data());
+      if (data.length) return data;
     } catch { /* fallback */ }
   }
   return loadTeachersLocal();
 }
 
+/* ---- Delete (Firestore + localStorage) ---- */
+
 export async function deleteStudent(name: string) {
-  const staff = loadStaffLB().filter(e => e.name !== name);
+  const staff = loadStaffLB().filter((e: any) => e.name !== name);
   saveStaffLB(staff);
-  const piano = loadPianoLB().filter(e => e.name !== name);
+  const piano = loadPianoLB().filter((e: any) => e.name !== name);
   savePianoLB(piano);
-  const url = getApiUrl();
-  if (url) postNoCors(url, { action: "deleteStudent", name });
+  if (db) {
+    try {
+      const snap = await getDocs(query(collection(db, "results")));
+      const batch = writeBatch(db);
+      snap.docs.filter(d => d.data().name === name).forEach(d => batch.delete(d.ref));
+      await batch.commit();
+    } catch { /* silent */ }
+  }
   return true;
 }
 
 export async function deleteTeacher(code: string) {
-  const local = loadTeachersLocal().filter(t => t.code !== code);
+  const local = loadTeachersLocal().filter((t: any) => t.code !== code);
   saveTeachersLocal(local);
-  const url = getApiUrl();
-  if (url) postNoCors(url, { action: "deleteTeacher", code });
+  if (db) {
+    try {
+      const snap = await getDocs(query(collection(db, "teachers")));
+      const target = snap.docs.find(d => d.data().code === code);
+      if (target) await deleteDoc(doc(db, "teachers", target.id));
+    } catch { /* silent */ }
+  }
   return true;
-}
-
-export function isApiEnvConfigured(): boolean {
-  return typeof import.meta !== "undefined" && !!import.meta.env?.VITE_SHEETS_API_URL;
 }

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { GraduationCap, ArrowLeft, AlertCircle, UserPlus, Database, CheckCircle, XCircle } from "lucide-react";
-import { verifyTeacher, registerTeacher, getApiUrl, setApiUrl, clearApiUrl, isApiEnvConfigured } from "@/lib/sheetsApi";
+import { GraduationCap, ArrowLeft, AlertCircle, UserPlus, Database, XCircle } from "lucide-react";
+import { verifyTeacher, registerTeacher } from "@/lib/sheetsApi";
+import { hasConfig } from "@/lib/firebase";
 
 export default function TeacherLogin() {
   const [, setLocation] = useLocation();
@@ -12,14 +13,10 @@ export default function TeacherLogin() {
   const [setupSchool, setSetupSchool] = useState("");
   const [setupSubject, setSetupSubject] = useState("");
   const [setupSuccess, setSetupSuccess] = useState("");
-  const [showSheetsConfig, setShowSheetsConfig] = useState(false);
-  const [sheetsUrl, setSheetsUrl] = useState(getApiUrl() || "");
-  const envConfigured = isApiEnvConfigured();
 
   useEffect(() => {
     const existing = localStorage.getItem("teacher_token");
     if (existing) setLocation("/teacher");
-    setSheetsUrl(getApiUrl() || "");
   }, []);
 
   const handleLogin = async () => {
@@ -43,15 +40,6 @@ export default function TeacherLogin() {
     setSetupCode("");
     setSetupSchool("");
     setSetupSubject("");
-  };
-
-  const handleSaveSheetsUrl = () => {
-    if (sheetsUrl.trim()) {
-      setApiUrl(sheetsUrl.trim());
-    } else {
-      clearApiUrl();
-    }
-    setShowSheetsConfig(false);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => { if (e.key === "Enter") handleLogin(); };
@@ -93,10 +81,9 @@ export default function TeacherLogin() {
               </div>
               {error && <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded-lg text-sm"><AlertCircle className="w-4 h-4 flex-shrink-0" /><span>{error}</span></div>}
               {setupSuccess && <div className="text-green-700 bg-green-50 p-3 rounded-lg text-sm font-medium">{setupSuccess}</div>}
-              {!envConfigured && !getApiUrl() && (
+              {!hasConfig && (
                 <div className="text-xs text-amber-600 bg-amber-50 p-3 rounded-lg">
-                  Sem conexão com Google Sheets. Os dados ficarão salvos apenas neste dispositivo.
-                  Configure na tela de login.
+                  Firebase não configurado. Os dados ficarão salvos apenas neste dispositivo.
                 </div>
               )}
               <button onClick={handleSetup}
@@ -128,8 +115,8 @@ export default function TeacherLogin() {
           </div>
           <div className="p-6 space-y-5">
             <div className="flex items-center gap-2 text-xs">
-              {envConfigured || getApiUrl() ? (
-                <span className="flex items-center gap-1 text-green-600"><CheckCircle className="w-3 h-3" /> Google Sheets conectado</span>
+              {hasConfig ? (
+                <span className="flex items-center gap-1 text-green-600"><Database className="w-3 h-3" /> Firebase conectado</span>
               ) : (
                 <span className="flex items-center gap-1 text-amber-600"><XCircle className="w-3 h-3" /> Apenas local (navegador)</span>
               )}
@@ -153,42 +140,10 @@ export default function TeacherLogin() {
               <button onClick={() => { setShowSetup(true); setError(null); }}
                 className="text-gray-500 hover:text-indigo-600 text-xs flex items-center justify-center gap-1 mx-auto cursor-pointer"
               ><UserPlus className="w-3 h-3" /> Primeiro acesso? Cadastre-se</button>
-              {!envConfigured && (
-                <button onClick={() => setShowSheetsConfig(true)}
-                  className="text-gray-500 hover:text-indigo-600 text-xs flex items-center justify-center gap-1 mx-auto cursor-pointer"
-                ><Database className="w-3 h-3" /> Configurar Google Sheets</button>
-              )}
             </div>
           </div>
         </div>
       </div>
-
-      {showSheetsConfig && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4" onClick={() => setShowSheetsConfig(false)}>
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-bold text-gray-800">Configurar Google Sheets</h3>
-            <p className="text-sm text-gray-500">
-              Cole a URL do seu Web App do Google Apps Script para salvar os dados na nuvem.
-              Sem essa URL, os dados ficam salvos apenas no navegador (localStorage).
-            </p>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">URL do Web App</label>
-              <input type="url" placeholder="https://script.google.com/macros/s/..." value={sheetsUrl}
-                onChange={(e) => setSheetsUrl(e.target.value)}
-                className="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-lg focus:border-indigo-500 outline-none transition box-border"
-              />
-            </div>
-            <div className="flex gap-3">
-              <button onClick={() => setShowSheetsConfig(false)}
-                className="flex-1 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 cursor-pointer"
-              >Cancelar</button>
-              <button onClick={handleSaveSheetsUrl}
-                className="flex-1 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg text-sm font-medium cursor-pointer"
-              >Salvar</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
