@@ -447,6 +447,12 @@ export default function AppQuiz() {
         .note-btn.wrong { background: #fdecea !important; border-color: #c0392b !important; color: #c0392b !important; }
         .note-btn:disabled { cursor: default; }
       `}</style>
+      <div style={{ maxWidth: "800px", margin: "40px auto 0", padding: "32px", borderTop: "1px solid #e0e0e0" }}>
+        <h3 style={{ fontSize: "16px", fontWeight: 600, color: "#1a1a1a", marginBottom: "8px" }}>Sobre esta Plataforma</h3>
+        <p style={{ fontSize: "14px", color: "#666", margin: 0 }}>
+          Esta plataforma foi desenvolvida por Thômas Edson para acompanhar aprendizado de alunos no GEM - Grupo de Ensino Musical.
+        </p>
+      </div>
     </div>
   );
 }
