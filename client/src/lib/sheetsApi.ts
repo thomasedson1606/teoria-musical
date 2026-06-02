@@ -47,6 +47,7 @@ export async function saveResult(data: {
   name: string; score: number; wrong: number; pct: number;
   time: number; date: string; activity: "staff" | "piano";
   clef?: string; difficulty?: string;
+  mistakes?: Array<{question: string; answer: string; correct: string}>;
 }) {
   const entry: any = { ...data, timestamp: Date.now() };
   const key = data.activity === "piano" ? PIANO_KEY : STAFF_KEY;

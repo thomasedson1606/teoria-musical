@@ -57,6 +57,7 @@ export default function AppQuiz() {
     answered: false,
     questions: [] as any[],
     startTime: 0, timerInt: null as any, elapsed: 0,
+    mistakes: [] as Array<{question: string; answer: string; correct: string}>,
   });
 
   const [timerDisplay, setTimerDisplay] = useState("⏱ 0s");
@@ -110,7 +111,7 @@ export default function AppQuiz() {
     setState({
       studentName: studentName.trim(), clef: selectedClef, difficulty: selectedDifficulty,
       current: 0, correct: 0, wrong: 0, answered: false, questions,
-      startTime: Date.now(), timerInt: null, elapsed: 0,
+      startTime: Date.now(), timerInt: null, elapsed: 0, mistakes: [],
     });
     setScreen("quiz");
   };
@@ -124,7 +125,7 @@ export default function AppQuiz() {
       setFeedbackText("✓ Correto!");
       setFeedbackClass("ok");
     } else {
-      setState((prev) => ({ ...prev, wrong: prev.wrong + 1 }));
+      setState((prev) => ({ ...prev, wrong: prev.wrong + 1, mistakes: [...prev.mistakes, { question: correct, answer: chosen, correct }] }));
       setFeedbackText(`✗ A nota correta era ${correct}`);
       setFeedbackClass("err");
     }
@@ -152,6 +153,7 @@ export default function AppQuiz() {
       date: new Date().toLocaleDateString("pt-BR"),
       activity: "staff" as const,
       clef: currentState.clef, difficulty: currentState.difficulty,
+      mistakes: currentState.mistakes,
     };
     await saveResult(entry);
     setLeaderboard(loadLeaderboard());
@@ -166,7 +168,7 @@ export default function AppQuiz() {
     setFeedbackClass("");
     setState({
       ...state, current: 0, correct: 0, wrong: 0, answered: false, questions,
-      startTime: Date.now(), timerInt: null, elapsed: 0,
+      startTime: Date.now(), timerInt: null, elapsed: 0, mistakes: [],
     });
     setScreen("quiz");
   };
@@ -223,7 +225,7 @@ export default function AppQuiz() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "linear-gradient(to br, #f3f0ff via-white to #faf5ff)", padding: "20px" }}>
+    <div style={{ minHeight: "100vh", background: "linear-gradient(to br, #f3f0ff via-white to #faf5ff)", padding: "12px", maxWidth: "100vw", overflowX: "hidden" }}>
       {screen === "home" && (
         <div style={{ maxWidth: "800px", margin: "0 auto", paddingTop: "40px" }}>
           <div style={{ textAlign: "center", marginBottom: "40px" }}>

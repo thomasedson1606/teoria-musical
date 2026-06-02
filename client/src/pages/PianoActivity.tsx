@@ -55,6 +55,7 @@ export default function PianoActivity({ studentName: propName, onFinish }: { stu
   const [chosenNote, setChosenNote] = useState<string | null>(null);
   const [feedbackText, setFeedbackText] = useState("");
   const [feedbackClass, setFeedbackClass] = useState("");
+  const [mistakes, setMistakes] = useState<Array<{question: string; answer: string; correct: string}>>([]);
 
   useEffect(() => {
     setLeaderboard(loadLeaderboard());
@@ -71,6 +72,7 @@ export default function PianoActivity({ studentName: propName, onFinish }: { stu
     setChosenNote(null);
     setFeedbackText("");
     setFeedbackClass("");
+    setMistakes([]);
     setScreen("quiz");
   };
 
@@ -84,6 +86,7 @@ export default function PianoActivity({ studentName: propName, onFinish }: { stu
       setFeedbackClass("ok");
     } else {
       setWrong((p) => p + 1);
+      setMistakes((prev) => [...prev, { question: questions[current], answer: chosen, correct: questions[current] }]);
       setFeedbackText(`✗ A nota correta era ${questions[current]}`);
       setFeedbackClass("err");
     }
@@ -111,6 +114,7 @@ export default function PianoActivity({ studentName: propName, onFinish }: { stu
       time: 0,
       date: new Date().toLocaleDateString("pt-BR"),
       activity: "piano" as const,
+      mistakes,
     };
     await saveResult(entry);
     setLeaderboard(loadLeaderboard());
@@ -126,6 +130,7 @@ export default function PianoActivity({ studentName: propName, onFinish }: { stu
     setChosenNote(null);
     setFeedbackText("");
     setFeedbackClass("");
+    setMistakes([]);
     setScreen("quiz");
   };
 
@@ -134,7 +139,7 @@ export default function PianoActivity({ studentName: propName, onFinish }: { stu
   const pianoWidth = WHITE_NOTES.length * WHITE_WIDTH;
 
   return (
-    <div style={{ minHeight: "100vh", background: "linear-gradient(to br, #f3f0ff via-white to #faf5ff)", padding: "20px" }}>
+    <div style={{ minHeight: "100vh", background: "linear-gradient(to br, #f3f0ff via-white to #faf5ff)", padding: "12px", maxWidth: "100vw", overflowX: "hidden" }}>
       {screen === "home" && (
         <div style={{ maxWidth: "700px", margin: "0 auto", paddingTop: "40px" }}>
           <div style={{ textAlign: "center", marginBottom: "30px" }}>
@@ -187,8 +192,8 @@ export default function PianoActivity({ studentName: propName, onFinish }: { stu
             </p>
 
             {/* Piano Keyboard */}
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px", width: "100%", overflow: "hidden" }}>
-              <div style={{ position: "relative", background: "#1a1a1a", padding: "8px 8px 0", borderRadius: "10px", boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px", width: "100%", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+              <div style={{ position: "relative", background: "#1a1a1a", padding: "8px 8px 0", borderRadius: "10px", boxShadow: "0 4px 12px rgba(0,0,0,0.15)", flexShrink: 0 }}>
                 <div style={{ display: "flex" }}>
                   {WHITE_NOTES.map((note, i) => (
                     <div key={note}
