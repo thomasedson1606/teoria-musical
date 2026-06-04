@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Music, BookOpen } from "lucide-react";
+import { Music, BookOpen, Users } from "lucide-react";
 import PianoActivity from "@/pages/PianoActivity";
-import { saveResult } from "@/lib/sheetsApi";
+import { saveResult, getTurmas } from "@/lib/sheetsApi";
 import {
   CLEFS, DIFFICULTY, CLEF_CONFIG, DIFFICULTY_CONFIG,
   filterNotesByDifficulty, type Clef, type DifficultyLevel,
@@ -41,6 +41,8 @@ export default function AppQuiz() {
   const [activity, setActivity] = useState<"staff" | "piano" | null>(null);
   const [studentName, setStudentName] = useState("");
   const [nameError, setNameError] = useState(false);
+  const [selectedTurma, setSelectedTurma] = useState("");
+  const [turmas, setTurmas] = useState<string[]>([]);
   const [selectedClef, setSelectedClef] = useState<Clef>(CLEFS.SOL);
   const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyLevel>(DIFFICULTY.EASY);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
@@ -51,6 +53,7 @@ export default function AppQuiz() {
 
   const [state, setState] = useState({
     studentName: "",
+    turma: "",
     clef: CLEFS.SOL as Clef,
     difficulty: DIFFICULTY.EASY as DifficultyLevel,
     current: 0, correct: 0, wrong: 0,
@@ -64,6 +67,7 @@ export default function AppQuiz() {
 
   useEffect(() => {
     setLeaderboard(loadLeaderboard());
+    getTurmas().then(setTurmas).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -102,6 +106,10 @@ export default function AppQuiz() {
     setScreen("piano");
   };
 
+  const handlePianoFinish = () => {
+    setScreen("home");
+  };
+
   const confirmExercise = () => {
     const clefConfig = CLEF_CONFIG[selectedClef];
     const questions = generateQuestions(clefConfig.notes, selectedDifficulty);
@@ -109,7 +117,7 @@ export default function AppQuiz() {
     setFeedbackText("");
     setFeedbackClass("");
     setState({
-      studentName: studentName.trim(), clef: selectedClef, difficulty: selectedDifficulty,
+      studentName: studentName.trim(), turma: selectedTurma, clef: selectedClef, difficulty: selectedDifficulty,
       current: 0, correct: 0, wrong: 0, answered: false, questions,
       startTime: Date.now(), timerInt: null, elapsed: 0, mistakes: [],
     });
@@ -152,7 +160,7 @@ export default function AppQuiz() {
       pct: Math.round(currentState.correct / TOTAL_Q * 100), time: elapsed,
       date: new Date().toLocaleDateString("pt-BR"),
       activity: "staff" as const,
-      clef: currentState.clef, difficulty: currentState.difficulty,
+      clef: currentState.clef, difficulty: currentState.difficulty, turma: currentState.turma || undefined,
       mistakes: currentState.mistakes,
     };
     await saveResult(entry);
@@ -251,6 +259,24 @@ export default function AppQuiz() {
               />
               {nameError && <p style={{ fontSize: "12px", color: "#c0392b", marginTop: "6px" }}>Por favor, insira seu nome para continuar.</p>}
             </div>
+            {turmas.length > 0 && (
+              <div style={{ marginBottom: "20px" }}>
+                <label style={{ fontSize: "14px", fontWeight: 600, color: "#555", display: "block", marginBottom: "8px" }}>Selecione sua turma:</label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                  {turmas.map((turma) => (
+                    <button key={turma} onClick={() => setSelectedTurma(selectedTurma === turma ? "" : turma)}
+                      style={{
+                        padding: "8px 16px", fontSize: "14px", fontWeight: 600,
+                        border: selectedTurma === turma ? "2px solid #6366f1" : "2px solid #e0e0e0",
+                        borderRadius: "8px", background: selectedTurma === turma ? "#f3f0ff" : "#fff",
+                        color: selectedTurma === turma ? "#6366f1" : "#555",
+                        cursor: "pointer", transition: "all 0.15s",
+                      }}
+                    >{turma}</button>
+                  ))}
+                </div>
+              </div>
+            )}
             <button onClick={startExercise} disabled={!studentName.trim()}
               style={{ width: "100%", background: "linear-gradient(to right, #6366f1, #a855f7)", color: "#fff", border: "none", borderRadius: "8px", padding: "14px", fontSize: "16px", fontWeight: 600, cursor: studentName.trim() ? "pointer" : "default", opacity: studentName.trim() ? 1 : 0.5, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
               onMouseEnter={(e) => { if (studentName.trim()) e.currentTarget.style.transform = "scale(1.02)"; }}
@@ -322,7 +348,7 @@ export default function AppQuiz() {
       )}
 
       {screen === "piano" && (
-        <PianoActivity studentName={studentName} onFinish={() => setScreen("home")} />
+        <PianoActivity studentName={studentName} turma={selectedTurma} onFinish={handlePianoFinish} />
       )}
 
       {screen === "config" && (
@@ -383,10 +409,22 @@ export default function AppQuiz() {
       {screen === "quiz" && (
         <div style={{ maxWidth: "700px", margin: "0 auto", paddingTop: "20px" }}>
           <div style={{ background: "#fff", borderRadius: "16px", padding: "24px", boxShadow: "0 10px 40px rgba(0,0,0,0.08)" }}>
-            <div style={{ fontSize: "13px", color: "#777", marginBottom: "8px" }}>
-              Aluno: <span style={{ fontWeight: 600, color: "#1a1a1a" }}>{state.studentName}</span>
-              {" • "}
-              <span style={{ fontSize: "12px", color: "#999" }}>{CLEF_CONFIG[state.clef].label} • {DIFFICULTY_CONFIG[state.difficulty].label}</span>
+            <div style={{ fontSize: "13px", color: "#777", marginBottom: "8px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "6px" }}>
+              <span>Aluno: <span style={{ fontWeight: 600, color: "#1a1a1a" }}>{state.studentName}</span></span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                <span style={{ background: "#f3f0ff", color: "#6366f1", padding: "3px 10px", borderRadius: "99px", fontSize: "12px", fontWeight: 600, border: "1px solid #ddd6fe" }}>
+                  {CLEF_CONFIG[state.clef].unicode} {CLEF_CONFIG[state.clef].label}
+                </span>
+                <span style={{ background: "#f0fdf4", color: "#16a34a", padding: "3px 10px", borderRadius: "99px", fontSize: "12px", fontWeight: 600, border: "1px solid #bbf7d0" }}>
+                  {DIFFICULTY_CONFIG[state.difficulty].icon} {DIFFICULTY_CONFIG[state.difficulty].label}
+                </span>
+                {state.turma && (
+                  <span style={{ background: "#fef2f2", color: "#dc2626", padding: "3px 10px", borderRadius: "99px", fontSize: "12px", fontWeight: 600, border: "1px solid #fecaca" }}>
+                    <Users size={12} style={{ display: "inline", verticalAlign: "middle", marginRight: "2px" }} />
+                    {state.turma}
+                  </span>
+                )}
+              </span>
             </div>
             {renderQuestion()}
             <button id="next-btn" onClick={nextQuestion} disabled={!state.answered}
@@ -402,9 +440,22 @@ export default function AppQuiz() {
         <div style={{ maxWidth: "700px", margin: "0 auto", paddingTop: "20px" }}>
           <h1 style={{ fontSize: "32px", fontWeight: 700, color: "#1a1a1a", textAlign: "center", marginBottom: "24px" }}>Resultado final 🎉</h1>
           <div style={{ background: "#fff", borderRadius: "16px", padding: "32px", textAlign: "center", marginBottom: "20px", boxShadow: "0 10px 40px rgba(0,0,0,0.08)" }}>
+            <div style={{ display: "flex", justifyContent: "center", gap: "8px", flexWrap: "wrap", marginBottom: "16px" }}>
+              <span style={{ background: "#f3f0ff", color: "#6366f1", padding: "4px 14px", borderRadius: "99px", fontSize: "14px", fontWeight: 600, border: "1px solid #ddd6fe" }}>
+                {CLEF_CONFIG[state.clef].unicode} {CLEF_CONFIG[state.clef].label}
+              </span>
+              <span style={{ background: "#f0fdf4", color: "#16a34a", padding: "4px 14px", borderRadius: "99px", fontSize: "14px", fontWeight: 600, border: "1px solid #bbf7d0" }}>
+                {DIFFICULTY_CONFIG[state.difficulty].icon} {DIFFICULTY_CONFIG[state.difficulty].label}
+              </span>
+              {state.turma && (
+                <span style={{ background: "#fef2f2", color: "#dc2626", padding: "4px 14px", borderRadius: "99px", fontSize: "14px", fontWeight: 600, border: "1px solid #fecaca" }}>
+                  {state.turma}
+                </span>
+              )}
+            </div>
             <p style={{ fontSize: "14px", color: "#555", marginBottom: "12px" }}>Parabéns, <strong>{state.studentName}</strong>!</p>
             <div style={{ fontSize: "72px", fontWeight: 800, background: "linear-gradient(to right, #6366f1, #a855f7)", backgroundClip: "text", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", lineHeight: 1, margin: "12px 0" }}>{state.correct}</div>
-            <p style={{ fontSize: "15px", color: "#888", margin: "8px 0" }}>de 20 acertos</p>
+            <p style={{ fontSize: "15px", color: "#888", margin: "8px 0" }}>de {TOTAL_Q} acertos</p>
             <p style={{ fontSize: "13px", color: "#aaa", marginTop: "12px" }}>Tempo total: {state.elapsed}s</p>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px", marginBottom: "20px" }}>

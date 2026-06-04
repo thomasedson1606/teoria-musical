@@ -7,6 +7,7 @@ import {
 const STAFF_KEY = "teoria_musical_leaderboard";
 const PIANO_KEY = "teoria_musical_piano_leaderboard";
 const TEACHERS_KEY = "teoria_musical_teachers";
+const TURMAS_KEY = "teoria_musical_turmas";
 
 function loadStaffLB(): any[] {
   try { return JSON.parse(localStorage.getItem(STAFF_KEY) || "[]"); } catch { return []; }
@@ -43,10 +44,58 @@ export function isApiEnvConfigured(): boolean {
 
 /* ---- Save result (Firestore + localStorage) ---- */
 
+/* ---- Turmas (localStorage + Firestore) ---- */
+
+function loadTurmasLocal(): string[] {
+  try { return JSON.parse(localStorage.getItem(TURMAS_KEY) || "[]"); } catch { return []; }
+}
+function saveTurmasLocal(data: string[]) {
+  localStorage.setItem(TURMAS_KEY, JSON.stringify(data));
+}
+
+export async function getTurmas(): Promise<string[]> {
+  if (db) {
+    try {
+      const snap = await getDocs(query(collection(db, "turmas")));
+      const data = snap.docs.map(d => d.data().name as string);
+      if (data.length) return data;
+    } catch { /* fallback */ }
+  }
+  return loadTurmasLocal();
+}
+
+export async function addTurma(name: string): Promise<boolean> {
+  const local = loadTurmasLocal();
+  if (local.includes(name)) return false;
+  local.push(name);
+  saveTurmasLocal(local);
+  if (db) {
+    try {
+      await addDoc(collection(db, "turmas"), { name, createdAt: new Date().toISOString() });
+    } catch { /* silent */ }
+  }
+  return true;
+}
+
+export async function removeTurma(name: string): Promise<boolean> {
+  const local = loadTurmasLocal().filter(t => t !== name);
+  saveTurmasLocal(local);
+  if (db) {
+    try {
+      const snap = await getDocs(query(collection(db, "turmas")));
+      const target = snap.docs.find(d => d.data().name === name);
+      if (target) await deleteDoc(doc(db, "turmas", target.id));
+    } catch { /* silent */ }
+  }
+  return true;
+}
+
+/* ---- Save result (Firestore + localStorage) ---- */
+
 export async function saveResult(data: {
   name: string; score: number; wrong: number; pct: number;
   time: number; date: string; activity: "staff" | "piano";
-  clef?: string; difficulty?: string;
+  clef?: string; difficulty?: string; turma?: string;
   mistakes?: Array<{question: string; answer: string; correct: string}>;
 }) {
   const entry: any = { ...data, timestamp: Date.now() };

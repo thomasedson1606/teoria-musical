@@ -42,7 +42,7 @@ function generateQuestions(): string[] {
   return result.slice(0, TOTAL_Q);
 }
 
-export default function PianoActivity({ studentName: propName, onFinish }: { studentName?: string; onFinish?: () => void }) {
+export default function PianoActivity({ studentName: propName, turma, onFinish }: { studentName?: string; turma?: string; onFinish?: () => void }) {
   const [screen, setScreen] = useState<"home" | "quiz" | "result">(propName ? "quiz" : "home");
   const [studentName, setStudentName] = useState(propName || "");
   const [nameError, setNameError] = useState(false);
@@ -114,6 +114,7 @@ export default function PianoActivity({ studentName: propName, onFinish }: { stu
       time: 0,
       date: new Date().toLocaleDateString("pt-BR"),
       activity: "piano" as const,
+      turma: turma || undefined,
       mistakes,
     };
     await saveResult(entry);

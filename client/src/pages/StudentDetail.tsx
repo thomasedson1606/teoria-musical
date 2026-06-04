@@ -104,23 +104,42 @@ export default function StudentDetail() {
             </h2>
           </div>
           <div className="p-3 md:p-4">
-            {sessions.length === 0 ? <p className="text-gray-400 text-center py-8">Nenhuma sessão encontrada.</p> : (
-              <div className="space-y-2">
-                {[...sessions].reverse().map((s: any, i: number) => {
-                  const pct = Math.round((s.correctAnswers / s.totalQuestions) * 100);
-                  return (
-                    <div key={s.id} className="flex items-center gap-2 md:gap-3 text-xs md:text-sm">
-                      <span className="text-gray-400 w-6 md:w-8 text-right font-mono">#{i + 1}</span>
-                      <div className="flex-1 bg-gray-100 rounded-full h-3 md:h-4 overflow-hidden min-w-0">
-                        <div className={`h-full rounded-full transition-all ${pct >= 80 ? "bg-green-500" : pct >= 50 ? "bg-yellow-500" : "bg-red-500"}`} style={{ width: `${pct}%` }}></div>
-                      </div>
-                      <span className={`font-semibold w-8 md:w-12 text-right ${getAccuracyColor(pct)}`}>{pct}%</span>
-                      <span className="text-gray-400 text-xs w-16 md:w-20 text-right">{new Date(s.createdAt).toLocaleDateString("pt-BR")}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                {sessions.length === 0 ? <p className="text-gray-400 text-center py-8">Nenhuma sessão encontrada.</p> : (
+                  <div className="space-y-4">
+                    {[...sessions].reverse().map((s: any, i: number) => {
+                      const pct = Math.round((s.correctAnswers / s.totalQuestions) * 100);
+                      return (
+                        <div key={s.id}>
+                          <div className="flex flex-wrap gap-1 mb-1">
+                            {s._raw.clef && (
+                              <span className="text-xs bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded font-medium">
+                                {s._raw.clef === "sol" ? "𝄞 Clave de Sol" : "𝄢 Clave de Fá"}
+                              </span>
+                            )}
+                            {s._raw.difficulty && (
+                              <span className="text-xs bg-green-50 text-green-700 px-1.5 py-0.5 rounded font-medium">
+                                {s._raw.difficulty === "easy" ? "🌱 Fácil" : s._raw.difficulty === "medium" ? "📚 Médio" : "🚀 Difícil"}
+                              </span>
+                            )}
+                            {s._raw.turma && (
+                              <span className="text-xs bg-rose-50 text-rose-700 px-1.5 py-0.5 rounded font-medium">
+                                {s._raw.turma}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 md:gap-3 text-xs md:text-sm">
+                            <span className="text-gray-400 w-6 md:w-8 text-right font-mono">#{i + 1}</span>
+                            <div className="flex-1 bg-gray-100 rounded-full h-3 md:h-4 overflow-hidden min-w-0">
+                              <div className={`h-full rounded-full transition-all ${pct >= 80 ? "bg-green-500" : pct >= 50 ? "bg-yellow-500" : "bg-red-500"}`} style={{ width: `${pct}%` }}></div>
+                            </div>
+                            <span className={`font-semibold w-8 md:w-12 text-right ${getAccuracyColor(pct)}`}>{pct}%</span>
+                            <span className="text-gray-400 text-xs w-16 md:w-20 text-right">{new Date(s.createdAt).toLocaleDateString("pt-BR")}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
           </div>
         </div>
 
@@ -134,15 +153,16 @@ export default function StudentDetail() {
             {sessions.length === 0 ? <p className="text-gray-400 text-center py-8">Nenhuma sessão encontrada.</p> : (
               <div className="overflow-x-auto">
                 <table className="w-full text-xs md:text-sm">
-                  <thead><tr className="border-b border-gray-200">
-                    <th className="text-left py-2 md:py-3 px-2 md:px-3 font-semibold text-gray-600">#</th>
-                    <th className="text-left py-2 md:py-3 px-2 md:px-3 font-semibold text-gray-600">Atividade</th>
-                    <th className="text-left py-2 md:py-3 px-2 md:px-3 font-semibold text-gray-600">Acertos</th>
-                    <th className="text-left py-2 md:py-3 px-2 md:px-3 font-semibold text-gray-600">Total</th>
-                    <th className="text-left py-2 md:py-3 px-2 md:px-3 font-semibold text-gray-600">Aproveitamento</th>
-                    <th className="text-right py-2 md:py-3 px-2 md:px-3 font-semibold text-gray-600">Data</th>
-                    <th className="py-2 md:py-3 px-1 md:px-3"></th>
-                  </tr></thead>
+                    <thead><tr className="border-b border-gray-200">
+                      <th className="text-left py-2 md:py-3 px-2 md:px-3 font-semibold text-gray-600">#</th>
+                      <th className="text-left py-2 md:py-3 px-2 md:px-3 font-semibold text-gray-600">Teste</th>
+                      <th className="text-left py-2 md:py-3 px-2 md:px-3 font-semibold text-gray-600">Turma</th>
+                      <th className="text-left py-2 md:py-3 px-2 md:px-3 font-semibold text-gray-600">Acertos</th>
+                      <th className="text-left py-2 md:py-3 px-2 md:px-3 font-semibold text-gray-600">Total</th>
+                      <th className="text-left py-2 md:py-3 px-2 md:px-3 font-semibold text-gray-600">Aproveitamento</th>
+                      <th className="text-right py-2 md:py-3 px-2 md:px-3 font-semibold text-gray-600">Data</th>
+                      <th className="py-2 md:py-3 px-1 md:px-3"></th>
+                    </tr></thead>
                   <tbody>
                     {sessions.map((s: any, i: number) => {
                       const pct = Math.round((s.correctAnswers / s.totalQuestions) * 100);
@@ -151,7 +171,14 @@ export default function StudentDetail() {
                         <React.Fragment key={s.id}>
                           <tr className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer" onClick={() => setExpandedSession(isExpanded ? null : s.id)}>
                             <td className="py-2 md:py-3 px-2 md:px-3 font-mono text-gray-400">{i + 1}</td>
-                            <td className="py-2 md:py-3 px-2 md:px-3 text-gray-600 text-xs">{s.activity === "piano" ? "Teclado" : "Pentagrama"}</td>
+                            <td className="py-2 md:py-3 px-2 md:px-3">
+                              <div className="flex flex-col gap-0.5">
+                                <span className="text-xs text-gray-600">{s.activity === "piano" ? "Teclado" : "Pentagrama"}</span>
+                                {s._raw.clef && <span className="text-xs text-indigo-600 font-medium">{s._raw.clef === "sol" ? "Clave de Sol" : "Clave de Fá"}</span>}
+                                {s._raw.difficulty && <span className="text-xs text-green-600 font-medium">{s._raw.difficulty === "easy" ? "Fácil" : s._raw.difficulty === "medium" ? "Médio" : "Difícil"}</span>}
+                              </div>
+                            </td>
+                            <td className="py-2 md:py-3 px-2 md:px-3 text-xs text-rose-600 font-medium">{s._raw.turma || "—"}</td>
                             <td className="py-2 md:py-3 px-2 md:px-3 font-semibold text-green-600">{s.correctAnswers}</td>
                             <td className="py-2 md:py-3 px-2 md:px-3 text-gray-600">{s.totalQuestions}</td>
                             <td className="py-2 md:py-3 px-2 md:px-3">
@@ -164,7 +191,7 @@ export default function StudentDetail() {
                           </tr>
                           {isExpanded && s.mistakes.length > 0 && (
                             <tr className="bg-red-50">
-                              <td colSpan={7} className="p-3 md:p-4">
+                              <td colSpan={8} className="p-3 md:p-4">
                                 <div className="flex items-center gap-2 mb-2 text-xs md:text-sm font-semibold text-red-700">
                                   <XCircle className="w-3.5 h-3.5 md:w-4 md:h-4" />Questões erradas
                                 </div>
@@ -185,7 +212,7 @@ export default function StudentDetail() {
                           )}
                           {isExpanded && s.mistakes.length === 0 && (
                             <tr className="bg-green-50">
-                              <td colSpan={7} className="p-3 md:p-4 text-center text-green-700 text-xs md:text-sm font-medium">
+                              <td colSpan={8} className="p-3 md:p-4 text-center text-green-700 text-xs md:text-sm font-medium">
                                 ✅ Nenhum erro nesta sessão!
                               </td>
                             </tr>
