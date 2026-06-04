@@ -141,10 +141,10 @@ export async function getPianoLeaderboard(): Promise<any[]> {
 
 /* ---- Teacher (Firestore + localStorage) ---- */
 
-export async function registerTeacher(code: string, schoolName = "", subject = ""): Promise<boolean> {
+export async function registerTeacher(code: string, name = ""): Promise<boolean> {
   const local = loadTeachersLocal();
   if (local.some((t: any) => t.code === code)) return false;
-  const teacher = { code, schoolName, subject, createdAt: new Date().toISOString() };
+  const teacher = { code, name, createdAt: new Date().toISOString() };
   local.push(teacher);
   saveTeachersLocal(local);
   if (db) {

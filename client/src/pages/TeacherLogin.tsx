@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { GraduationCap, ArrowLeft, AlertCircle, UserPlus, Database, XCircle } from "lucide-react";
+import { GraduationCap, ArrowLeft, AlertCircle, UserPlus, Database, XCircle, Eye, EyeOff } from "lucide-react";
 import { verifyTeacher, registerTeacher } from "@/lib/sheetsApi";
 import { hasConfig } from "@/lib/firebase";
 
@@ -9,10 +9,10 @@ export default function TeacherLogin() {
   const [teacherCode, setTeacherCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [showSetup, setShowSetup] = useState(false);
+  const [setupName, setSetupName] = useState("");
   const [setupCode, setSetupCode] = useState("");
-  const [setupSchool, setSetupSchool] = useState("");
-  const [setupSubject, setSetupSubject] = useState("");
   const [setupSuccess, setSetupSuccess] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const existing = localStorage.getItem("teacher_token");
@@ -30,16 +30,16 @@ export default function TeacherLogin() {
   };
 
   const handleSetup = async () => {
-    if (!setupCode.trim() || setupCode.trim().length < 4) { setError("O código deve ter no mínimo 4 caracteres."); return; }
+    if (!setupName.trim()) { setError("Por favor, insira o nome do professor."); return; }
+    if (!setupCode.trim() || setupCode.trim().length !== 4 || !/^\d{4}$/.test(setupCode.trim())) { setError("A senha deve ter exatamente 4 dígitos."); return; }
     setError(null);
     setSetupSuccess("");
-    const ok = await registerTeacher(setupCode.trim(), setupSchool.trim(), setupSubject.trim());
+    const ok = await registerTeacher(setupCode.trim(), setupName.trim());
     if (!ok) { setError("Este código já existe."); return; }
     setSetupSuccess("Professor cadastrado com sucesso! Faça login.");
     setShowSetup(false);
+    setSetupName("");
     setSetupCode("");
-    setSetupSchool("");
-    setSetupSubject("");
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => { if (e.key === "Enter") handleLogin(); };
@@ -59,25 +59,24 @@ export default function TeacherLogin() {
             </div>
             <div className="p-6 space-y-5">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Código do Professor *</label>
-                <input type="text" placeholder="Mínimo 4 caracteres" value={setupCode}
-                  onChange={(e) => setSetupCode(e.target.value)}
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Nome do Professor *</label>
+                <input type="text" placeholder="Nome completo" value={setupName}
+                  onChange={(e) => setSetupName(e.target.value)}
                   className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-lg focus:border-indigo-500 outline-none transition box-border"
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Escola (opcional)</label>
-                <input type="text" placeholder="Nome da escola" value={setupSchool}
-                  onChange={(e) => setSetupSchool(e.target.value)}
-                  className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-lg focus:border-indigo-500 outline-none transition box-border"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Disciplina (opcional)</label>
-                <input type="text" placeholder="Ex: Educação Musical" value={setupSubject}
-                  onChange={(e) => setSetupSubject(e.target.value)}
-                  className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-lg focus:border-indigo-500 outline-none transition box-border"
-                />
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Senha (4 dígitos) *</label>
+                <div className="relative">
+                  <input type={showPassword ? "text" : "password"} placeholder="Ex: 1234" maxLength={4}
+                    value={setupCode}
+                    onChange={(e) => setSetupCode(e.target.value.replace(/\D/g, ""))}
+                    className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-lg focus:border-indigo-500 outline-none transition box-border pr-10"
+                  />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                  >{showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>
+                </div>
               </div>
               {error && <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded-lg text-sm"><AlertCircle className="w-4 h-4 flex-shrink-0" /><span>{error}</span></div>}
               {setupSuccess && <div className="text-green-700 bg-green-50 p-3 rounded-lg text-sm font-medium">{setupSuccess}</div>}

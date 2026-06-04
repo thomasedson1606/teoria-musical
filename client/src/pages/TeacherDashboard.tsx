@@ -93,7 +93,7 @@ export default function TeacherDashboard() {
             <GraduationCap className="w-8 h-8 text-indigo-600" />
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Painel do Professor</h1>
-              {teacherInfo && <p className="text-sm text-gray-500">{teacherInfo.schoolName && `${teacherInfo.schoolName} • `}{teacherInfo.subject && `${teacherInfo.subject} • `}Bem-vindo!</p>}
+              {teacherInfo && <p className="text-sm text-gray-500">{teacherInfo.name ? `${teacherInfo.name} • ` : ""}Bem-vindo!</p>}
             </div>
           </div>
           <div className="flex gap-3">
@@ -120,7 +120,7 @@ export default function TeacherDashboard() {
             <div className="p-4 flex flex-wrap gap-2">
               {teachers.map((t: any, i: number) => (
                 <div key={i} className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                  <span className="text-sm font-medium text-amber-800">{t.schoolName || "Sem escola"} — {t.subject || "Sem disciplina"} <span className="text-amber-500">({t.code})</span></span>
+                  <span className="text-sm font-medium text-amber-800">{t.name || "Sem nome"}</span>
                   <button onClick={() => setConfirmDeleteTeacher(t.code)}
                     className="p-1 text-amber-400 hover:text-red-600 hover:bg-amber-100 rounded transition-colors cursor-pointer"
                     title="Excluir professor"
