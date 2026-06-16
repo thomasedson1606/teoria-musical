@@ -11,6 +11,7 @@ const TOTAL_Q = 20;
 const NOTE_X = 270;
 const LY = [102, 89, 76, 63, 50];
 const STORAGE_KEY = "teoria_musical_leaderboard";
+const SESSION_KEY = "teoria_musical_quiz_session";
 
 function shuffle(arr: any[]) {
   let a = [...arr];
@@ -19,6 +20,18 @@ function shuffle(arr: any[]) {
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
+}
+
+function saveQuizSession(data: any) {
+  try { localStorage.setItem(SESSION_KEY, JSON.stringify(data)); } catch {}
+}
+
+function loadQuizSession(): any | null {
+  try { return JSON.parse(localStorage.getItem(SESSION_KEY) || "null"); } catch { return null; }
+}
+
+function clearQuizSession() {
+  try { localStorage.removeItem(SESSION_KEY); } catch {}
 }
 
 function generateQuestions(notes: any[], difficulty: DifficultyLevel) {
@@ -50,6 +63,7 @@ export default function AppQuiz() {
   const [feedbackText, setFeedbackText] = useState("");
   const [feedbackClass, setFeedbackClass] = useState("");
   const [chosenNote, setChosenNote] = useState<string | null>(null);
+  const [savedSession, setSavedSession] = useState<any | null>(null);
 
   const [state, setState] = useState({
     studentName: "",
@@ -68,7 +82,64 @@ export default function AppQuiz() {
   useEffect(() => {
     setLeaderboard(loadLeaderboard());
     getTurmas().then(setTurmas).catch(() => {});
+
+    const session = loadQuizSession();
+    if (session && session.questions && session.questions.length > 0) {
+      setSavedSession(session);
+    }
   }, []);
+
+  useEffect(() => {
+    if (screen === "quiz" && state.questions.length > 0) {
+      saveQuizSession({
+        studentName: state.studentName,
+        turma: state.turma,
+        clef: state.clef,
+        difficulty: state.difficulty,
+        current: state.current,
+        correct: state.correct,
+        wrong: state.wrong,
+        answered: state.answered,
+        questions: state.questions,
+        mistakes: state.mistakes,
+        startTime: state.startTime,
+        timestamp: Date.now(),
+      });
+    } else if (screen !== "quiz") {
+      clearQuizSession();
+    }
+  }, [screen, state.current, state.correct, state.wrong, state.answered, state.mistakes]);
+
+  useEffect(() => {
+    if (screen !== "quiz") return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (state.questions.length === 0) return;
+      const remaining = TOTAL_Q - state.current - (state.answered ? 1 : 0);
+      if (remaining <= 0) return;
+      const finalCorrect = state.correct;
+      const finalWrong = state.wrong + remaining;
+      const finalMistakes = [...state.mistakes];
+      for (let i = state.current + (state.answered ? 1 : 0); i < TOTAL_Q; i++) {
+        finalMistakes.push({
+          question: state.questions[i]?.name || "?",
+          answer: "(abandonou)",
+          correct: state.questions[i]?.name || "?",
+        });
+      }
+      const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+      saveResult({
+        name: state.studentName, score: finalCorrect, wrong: finalWrong,
+        pct: Math.round(finalCorrect / TOTAL_Q * 100), time: elapsed,
+        date: new Date().toLocaleDateString("pt-BR"),
+        activity: "staff" as const,
+        clef: state.clef, difficulty: state.difficulty, turma: state.turma || undefined,
+        mistakes: finalMistakes,
+      });
+      clearQuizSession();
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [screen, state]);
 
   useEffect(() => {
     if (screen === "quiz" && state.timerInt === null && state.startTime > 0) {
@@ -111,6 +182,7 @@ export default function AppQuiz() {
   };
 
   const confirmExercise = () => {
+    clearQuizSession();
     const clefConfig = CLEF_CONFIG[selectedClef];
     const questions = generateQuestions(clefConfig.notes, selectedDifficulty);
     setChosenNote(null);
@@ -169,6 +241,7 @@ export default function AppQuiz() {
   };
 
   const retryExercise = () => {
+    clearQuizSession();
     const clefConfig = CLEF_CONFIG[state.clef];
     const questions = generateQuestions(clefConfig.notes, state.difficulty);
     setChosenNote(null);
@@ -248,6 +321,40 @@ export default function AppQuiz() {
             <div style={{ background: "linear-gradient(to right, #6366f1, #a855f7)", color: "#fff", borderRadius: "12px 12px 0 0", padding: "20px", marginBottom: "24px", marginLeft: "-32px", marginRight: "-32px", marginTop: "-32px" }}>
               <h2 style={{ fontSize: "24px", fontWeight: 700, margin: 0 }}>Bem-vindo!</h2>
             </div>
+            {savedSession && (
+              <div style={{ marginBottom: "20px", background: "#fff7ed", border: "2px solid #f97316", borderRadius: "12px", padding: "16px" }}>
+                <p style={{ fontSize: "14px", fontWeight: 600, color: "#c2410c", margin: "0 0 8px" }}>
+                  ⚠️ Você tem um exercício não finalizado ({savedSession.studentName} — {savedSession.current}/{TOTAL_Q} questões respondidas)
+                </p>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button onClick={() => {
+                    const s = savedSession;
+                    setStudentName(s.studentName || "");
+                    setSelectedTurma(s.turma || "");
+                    setSelectedClef(s.clef || CLEFS.SOL);
+                    setSelectedDifficulty(s.difficulty || DIFFICULTY.EASY);
+                    setState({
+                      studentName: s.studentName || "", turma: s.turma || "",
+                      clef: s.clef || CLEFS.SOL, difficulty: s.difficulty || DIFFICULTY.EASY,
+                      current: s.current || 0, correct: s.correct || 0, wrong: s.wrong || 0,
+                      answered: s.answered || false, questions: s.questions || [],
+                      startTime: s.startTime || Date.now(), timerInt: null, elapsed: 0,
+                      mistakes: s.mistakes || [],
+                    });
+                    setChosenNote(null);
+                    setFeedbackText("");
+                    setFeedbackClass("");
+                    setSavedSession(null);
+                    setScreen("quiz");
+                  }}
+                    style={{ flex: 1, padding: "10px", background: "#f97316", color: "#fff", border: "none", borderRadius: "8px", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}
+                  >Continuar de onde parou</button>
+                  <button onClick={() => { clearQuizSession(); setSavedSession(null); }}
+                    style={{ flex: 1, padding: "10px", background: "#fff", color: "#666", border: "1.5px solid #ccc", borderRadius: "8px", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}
+                  >Descartar e começar novo</button>
+                </div>
+              </div>
+            )}
             <div style={{ marginBottom: "20px" }}>
               <label style={{ fontSize: "14px", fontWeight: 600, color: "#555", display: "block", marginBottom: "8px" }}>Digite seu nome para começar:</label>
               <input type="text" placeholder="Seu nome completo" value={studentName}
@@ -475,7 +582,7 @@ export default function AppQuiz() {
           <h3 style={{ fontSize: "16px", fontWeight: 600, color: "#1a1a1a", marginBottom: "12px" }}>🏆 Placar geral</h3>
           <Leaderboard leaderboard={leaderboard} />
           <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap", marginTop: "20px" }}>
-            <button onClick={() => setScreen("home")}
+            <button onClick={() => { clearQuizSession(); setScreen("home"); }}
               style={{ background: "#fff", color: "#1a1a1a", border: "1.5px solid #ccc", borderRadius: "8px", padding: "12px 28px", fontSize: "15px", fontWeight: 600, cursor: "pointer" }}
               onMouseEnter={(e) => (e.currentTarget.style.background = "#f5f5f5")}
               onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
